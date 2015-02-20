@@ -10,7 +10,7 @@ import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.handler.codec.http._
 import HttpHeaders.Names._
 import HttpHeaders.Values._
-import io.netty.handler.timeout.{ IdleStateEvent, IdleStateHandler }
+import io.netty.handler.timeout.{ IdleState, IdleStateEvent, IdleStateHandler }
 import io.netty.util.ResourceLeakDetector
 import io.netty.util.internal.logging.{ Slf4JLoggerFactory, InternalLoggerFactory }
 
@@ -58,18 +58,19 @@ object Test extends StrictLogging {
             .addLast("aggregator", new HttpObjectAggregator(30000))
             .addLast("encoder", new HttpResponseEncoder)
             .addLast("compressor", new HttpContentCompressor)
-            .addLast("idleStateHandler", new IdleStateHandler(4, 0, 0) {
-              override def channelIdle(ctx: ChannelHandlerContext, evt: IdleStateEvent): Unit = {
-                ctx.channel.close()
-              }
-            })
+            .addLast("idleStateHandler", new IdleStateHandler(5, 0, 0))
             .addLast("handler", new ChannelInboundHandlerAdapter {
 
-              val start = System.nanoTime()
+              override def userEventTriggered(ctx: ChannelHandlerContext, evt: AnyRef): Unit =
+                evt match {
+                  case e: IdleStateEvent if e.state == IdleState.READER_IDLE => ctx.close()
+                  case _ =>
+                }
 
               override def channelRead(ctx: ChannelHandlerContext, msg: AnyRef): Unit =
                 msg match {
-                  case request: HttpRequest =>
+                  case request: FullHttpRequest =>
+                    request.content.release()
                     val response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, Unpooled.wrappedBuffer(smallJson))
                     response.headers
                       .set(CONTENT_TYPE, "application/json")
