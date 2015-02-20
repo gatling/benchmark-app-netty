@@ -10,7 +10,8 @@ import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.handler.codec.http._
 import HttpHeaders.Names._
 import HttpHeaders.Values._
-import io.netty.util.{ Timeout, TimerTask, HashedWheelTimer }
+import io.netty.handler.timeout.{ IdleStateEvent, IdleStateHandler }
+import io.netty.util.ResourceLeakDetector
 import io.netty.util.internal.logging.{ Slf4JLoggerFactory, InternalLoggerFactory }
 
 import scala.io.{ Source, Codec }
@@ -42,10 +43,10 @@ object Test extends StrictLogging {
 
     InternalLoggerFactory.setDefaultFactory(new Slf4JLoggerFactory)
 
+    ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.ADVANCED)
+
     val bossGroup = new NioEventLoopGroup
     val workerGroup = new NioEventLoopGroup
-
-    val timer = new HashedWheelTimer(10, TimeUnit.MILLISECONDS)
 
     val bootstrap = new ServerBootstrap()
       .group(bossGroup, workerGroup)
@@ -57,12 +58,18 @@ object Test extends StrictLogging {
             .addLast("aggregator", new HttpObjectAggregator(30000))
             .addLast("encoder", new HttpResponseEncoder)
             .addLast("compressor", new HttpContentCompressor)
+            .addLast("idleStateHandler", new IdleStateHandler(4, 0, 0) {
+              override def channelIdle(ctx: ChannelHandlerContext, evt: IdleStateEvent): Unit = {
+                ctx.channel.close()
+              }
+            })
             .addLast("handler", new ChannelInboundHandlerAdapter {
+
+              val start = System.nanoTime()
 
               override def channelRead(ctx: ChannelHandlerContext, msg: AnyRef): Unit =
                 msg match {
                   case request: HttpRequest =>
-                    logger.info(s"read req=$request")
                     val response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, Unpooled.wrappedBuffer(smallJson))
                     response.headers
                       .set(CONTENT_TYPE, "application/json")
@@ -73,8 +80,8 @@ object Test extends StrictLogging {
 
                     Option(queryStringDecoder.parameters.get("latency")).map(_.get(0).toInt) match {
                       case Some(latency) =>
-                        timer.newTimeout(new TimerTask {
-                          override def run(timeout: Timeout): Unit = {
+                        ctx.executor.schedule(new Runnable {
+                          override def run: Unit = {
                             ctx.writeAndFlush(response)
                             logger.debug(s"wrote response=$response after expected ${latency}ms")
                           }
@@ -82,17 +89,17 @@ object Test extends StrictLogging {
 
                       case _ =>
                         ctx.writeAndFlush(response)
-                        logger.info(s"wrote response=$response")
+                        logger.debug(s"wrote response=$response")
                     }
 
                   case _ =>
-                    logger.info(s"read msg=$msg")
+                    logger.error(s"read msg=$msg")
                 }
             })
         }
       })
 
-    val f = bootstrap.bind(new InetSocketAddress(9000)).sync
+    val f = bootstrap.bind(new InetSocketAddress(8000)).sync
     f.channel.closeFuture.sync
     logger.info("stopping")
     bossGroup.shutdownGracefully()

@@ -9,6 +9,7 @@ object BuildSettings {
 
   val basicSettings = Seq(
     organization := "io.gatling",
+    resolvers    := Seq(Opts.resolver.sonatypeSnapshots),
     scalaVersion := "2.11.5",
     scalacOptions := Seq(
       "-encoding", "UTF-8",
