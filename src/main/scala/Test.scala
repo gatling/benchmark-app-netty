@@ -82,7 +82,7 @@ object Test extends StrictLogging {
                     Option(queryStringDecoder.parameters.get("latency")).map(_.get(0).toInt) match {
                       case Some(latency) =>
                         ctx.executor.schedule(new Runnable {
-                          override def run: Unit = {
+                          override def run(): Unit = {
                             ctx.writeAndFlush(response)
                             logger.debug(s"wrote response=$response after expected ${latency}ms")
                           }
@@ -94,7 +94,7 @@ object Test extends StrictLogging {
                     }
 
                   case _ =>
-                    logger.error(s"read msg=$msg")
+                    logger.error(s"Read unexpected msg=$msg")
                 }
             })
         }
