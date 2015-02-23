@@ -4,7 +4,7 @@ import java.util.concurrent.TimeUnit
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.buffer.Unpooled
-import io.netty.channel.{ ChannelHandlerContext, ChannelInboundHandlerAdapter, Channel, ChannelInitializer }
+import io.netty.channel._
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.handler.codec.http._
@@ -49,6 +49,7 @@ object Test extends StrictLogging {
     val workerGroup = new NioEventLoopGroup
 
     val bootstrap = new ServerBootstrap()
+      //.option[Integer](ChannelOption.SO_BACKLOG, 1024)
       .group(bossGroup, workerGroup)
       .channel(classOf[NioServerSocketChannel])
       .childHandler(new ChannelInitializer[Channel] {
