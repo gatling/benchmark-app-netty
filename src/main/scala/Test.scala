@@ -1,4 +1,5 @@
 import java.net.InetSocketAddress
+import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeUnit
 
 import com.typesafe.scalalogging.slf4j.StrictLogging
@@ -21,6 +22,7 @@ object Test extends StrictLogging {
   val classLoader = getClass.getClassLoader
 
   implicit val codec = Codec.UTF8
+  val pong = "pong".getBytes(StandardCharsets.UTF_8)
   val smallJson = resourceAsBytes("json/small.json")
   val smallXml = resourceAsBytes("xml/small.xml")
   val smallHtml = resourceAsBytes("html/small.html")
@@ -43,23 +45,25 @@ object Test extends StrictLogging {
 
     InternalLoggerFactory.setDefaultFactory(new Slf4JLoggerFactory)
 
-    ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.ADVANCED)
+    ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.DISABLED)
 
     val bossGroup = new NioEventLoopGroup
     val workerGroup = new NioEventLoopGroup
 
     val bootstrap = new ServerBootstrap()
-      //.option[Integer](ChannelOption.SO_BACKLOG, 1024)
+      .option[Integer](ChannelOption.SO_BACKLOG, 1024)
       .group(bossGroup, workerGroup)
       .channel(classOf[NioServerSocketChannel])
       .childHandler(new ChannelInitializer[Channel] {
         override def initChannel(ch: Channel): Unit = {
           ch.pipeline()
-            .addLast("decoder", new HttpRequestDecoder)
+            // don't validate headers
+            .addLast("idleTimer", new CloseOnIdleReadTimeoutHandler(1))
+            .addLast("decoder", new HttpRequestDecoder(4096, 8192, 8192, false))
             .addLast("aggregator", new HttpObjectAggregator(30000))
             .addLast("encoder", new HttpResponseEncoder)
-            .addLast("compressor", new HttpContentCompressor)
-            .addLast("idleStateHandler", new IdleStateHandler(5, 0, 0))
+            //.addLast("compressor", new HttpContentCompressor)
+            //.addLast("idleStateHandler", new IdleStateHandler(5, 0, 0))
             .addLast("handler", new ChannelInboundHandlerAdapter {
 
               override def userEventTriggered(ctx: ChannelHandlerContext, evt: AnyRef): Unit =
@@ -72,27 +76,30 @@ object Test extends StrictLogging {
                 msg match {
                   case request: FullHttpRequest =>
                     request.content.release()
-                    val response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, Unpooled.wrappedBuffer(smallJson))
+
+                    val body = pong
+
+                    val response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, Unpooled.wrappedBuffer(body))
                     response.headers
-                      .set(CONTENT_TYPE, "application/json")
-                      .set(CONTENT_LENGTH, response.content.readableBytes)
+                      //.set(CONTENT_TYPE, "application/json")
+                      .set(CONTENT_LENGTH, body.length)
                       .set(CONNECTION, KEEP_ALIVE)
 
-                    val queryStringDecoder = new QueryStringDecoder(request.getUri)
-
-                    Option(queryStringDecoder.parameters.get("latency")).map(_.get(0).toInt) match {
-                      case Some(latency) =>
-                        ctx.executor.schedule(new Runnable {
-                          override def run(): Unit = {
-                            ctx.writeAndFlush(response)
-                            logger.debug(s"wrote response=$response after expected ${latency}ms")
-                          }
-                        }, latency, TimeUnit.MILLISECONDS)
-
-                      case _ =>
-                        ctx.writeAndFlush(response)
-                        logger.debug(s"wrote response=$response")
-                    }
+                    //                    val queryStringDecoder = new QueryStringDecoder(request.getUri)
+                    //
+                    //                    Option(queryStringDecoder.parameters.get("latency")).map(_.get(0).toInt) match {
+                    //                      case Some(latency) =>
+                    //                        ctx.executor.schedule(new Runnable {
+                    //                          override def run(): Unit = {
+                    //                            ctx.writeAndFlush(response)
+                    //                            logger.debug(s"wrote response=$response after expected ${latency}ms")
+                    //                          }
+                    //                        }, latency, TimeUnit.MILLISECONDS)
+                    //
+                    //                      case _ =>
+                    ctx.writeAndFlush(response)
+                    logger.debug(s"wrote response=$response")
+                  //                    }
 
                   case _ =>
                     logger.error(s"Read unexpected msg=$msg")
