@@ -1,12 +1,13 @@
 import java.net.InetSocketAddress
 import java.nio.charset.StandardCharsets
-import java.util.concurrent.TimeUnit
 
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.buffer.Unpooled
 import io.netty.channel._
+import io.netty.channel.epoll.{ EpollEventLoopGroup, EpollServerSocketChannel }
 import io.netty.channel.nio.NioEventLoopGroup
+import io.netty.channel.socket.ServerSocketChannel
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.handler.codec.http._
 import HttpHeaders.Names._
@@ -46,14 +47,17 @@ object Test extends StrictLogging {
     InternalLoggerFactory.setDefaultFactory(new Slf4JLoggerFactory)
 
     ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.DISABLED)
+    val useNativeTransport = java.lang.Boolean.getBoolean("gatling.useNativeTransport")
 
-    val bossGroup = new NioEventLoopGroup
-    val workerGroup = new NioEventLoopGroup
+    val bossGroup = if (useNativeTransport) new EpollEventLoopGroup else new NioEventLoopGroup
+    val workerGroup = if (useNativeTransport) new EpollEventLoopGroup else new NioEventLoopGroup
+
+    val channelClass: Class[_ <: ServerSocketChannel] = if (useNativeTransport) classOf[EpollServerSocketChannel] else classOf[NioServerSocketChannel]
 
     val bootstrap = new ServerBootstrap()
       .option[Integer](ChannelOption.SO_BACKLOG, 1024)
       .group(bossGroup, workerGroup)
-      .channel(classOf[NioServerSocketChannel])
+      .channel(channelClass)
       .childHandler(new ChannelInitializer[Channel] {
         override def initChannel(ch: Channel): Unit = {
           ch.pipeline()
