@@ -1,3 +1,4 @@
+import java.io.IOException
 import java.net.InetSocketAddress
 import java.nio.charset.StandardCharsets
 
@@ -74,6 +75,11 @@ object Test extends StrictLogging {
                 evt match {
                   case e: IdleStateEvent if e.state == IdleState.READER_IDLE => ctx.close()
                   case _ =>
+                }
+
+                override def exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable): Unit = cause match {
+                  case ioe: IOException => ctx.channel.close()
+                  case _ => ctx.fireExceptionCaught(cause)
                 }
 
               override def channelRead(ctx: ChannelHandlerContext, msg: AnyRef): Unit =
