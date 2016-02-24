@@ -10,7 +10,7 @@ object BuildSettings {
   val basicSettings = Seq(
     organization := "io.gatling",
     resolvers    := Seq(Opts.resolver.sonatypeSnapshots),
-    javaOptions  := Seq("-XX:+UseThreadPriorities", "-XX:ThreadPriorityPolicy=42", "-Xms512M", "-Xmx512M", "-XX:+AggressiveOpts", "-XX:+OptimizeStringConcat", "-XX:+UseFastAccessorMethods", "-XX:+UseParNewGC", "-XX:+UseConcMarkSweepGC", "-XX:+CMSParallelRemarkEnabled", "-Djava.net.preferIPv4Stack=true", "-Djava.net.preferIPv6Addresses=false"),
+    javaOptions  := Seq("-XX:+UseG1GC", "-Xms512M", "-Xmx512M", "-XX:+AggressiveOpts", "-XX:+OptimizeStringConcat", "-XX:+UseFastAccessorMethods", "-Djava.net.preferIPv4Stack=true", "-Djava.net.preferIPv6Addresses=false"),
     scalaVersion := "2.11.7",
     scalacOptions := Seq(
       "-encoding", "UTF-8",
