@@ -632,7 +632,7 @@ object Test extends StrictLogging {
                       case "/json1k" => writeResponse(ctx, request, Json1kContent)
                       case "/json10k" => writeResponse(ctx, request, Json10kContent)
                       case "/json100k" =>  writeResponse(ctx, request, Json100kContent)
-                      case "/≈" =>  writeResponse(ctx, request, Json1000kContent)
+                      case "/json1000k" =>  writeResponse(ctx, request, Json1000kContent)
 
                       case uri =>
                         val response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_FOUND)
