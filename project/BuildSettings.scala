@@ -11,7 +11,7 @@ object BuildSettings {
     organization := "io.gatling",
     resolvers    := Seq(Opts.resolver.sonatypeSnapshots),
     javaOptions  := Seq("-XX:+UseG1GC", "-Xms512M", "-Xmx512M", "-XX:+AggressiveOpts", "-XX:+OptimizeStringConcat", "-XX:+UseFastAccessorMethods", "-Djava.net.preferIPv4Stack=true", "-Djava.net.preferIPv6Addresses=false"),
-    scalaVersion := "2.11.7",
+    scalaVersion := "2.11.8",
     scalacOptions := Seq(
       "-encoding", "UTF-8",
       "-deprecation",
