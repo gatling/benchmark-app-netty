@@ -1,5 +1,6 @@
 import java.io.{ByteArrayOutputStream, IOException}
 import java.net.InetSocketAddress
+import java.util.concurrent.TimeUnit
 import java.util.zip.GZIPOutputStream
 
 import com.typesafe.scalalogging.slf4j.StrictLogging
@@ -13,8 +14,8 @@ import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.handler.codec.http._
 import HttpHeaders.Names._
 import HttpHeaders.Values._
-import io.netty.handler.timeout.{IdleState, IdleStateEvent, IdleStateHandler}
-import io.netty.util.ResourceLeakDetector
+import io.netty.handler.timeout.{ IdleState, IdleStateEvent }
+import io.netty.util._
 import io.netty.util.internal.logging.{InternalLoggerFactory, Slf4JLoggerFactory}
 import scala.io.{Codec, Source}
 
@@ -24,6 +25,11 @@ object Test extends StrictLogging {
   private val ApplicationJsonContentType = HttpHeaders.newEntity("application/json")
 
   implicit val codec = Codec.UTF8
+
+  private val port = 8000
+
+  private val VsctJson =
+    """{"status":"SUCCESS","comment":null,"appModifier":"TRN","idTech":234224,"login":"JeanPierreToto9@yopmail.com","lastConnexionDate":null,"lastBlockDate":null,"appCreator":null,"title":"mr","lastName":"Leboucher","firstName":"Sebastien","email":"JeanPierreToto9@yopmail.com","address":"37 rue des sazières","address2":"chemin","zip":"92700","city":"Elbeuf","souscription":"Navigo_Annuel","cardType":"Enfans_Familles_Nombreuses","zone":"ZONE1_3","inscriptionNewsletter":true,"cgu":true,"blockFlag":false,"codePays":"FRANCE","codeLanguage":"FRANCAIS","creationDate":1466664699000,"lastModificationDate":1478526894000,"birthdate":null,"phoneNumber":null,"inscriptionPanel":true,"mobility":null,"transportation":null,"pmrPref":null,"accesPlus":true,"infosMedia":{}}"""
 
   private val Json1k =
     """{"flavors":[
@@ -526,7 +532,7 @@ object Test extends StrictLogging {
 
   private val Json100k = Iterable.fill(10)(Json10k).mkString("[", ", ", "]")
 
-  private val Json1000k = Iterable.fill(10)(Json100k).mkString("[", ", ", "]")
+  private val Json1M = Iterable.fill(10)(Json100k).mkString("[", ", ", "]")
 
   case class Content(text: String, contentType: CharSequence) {
 
@@ -542,10 +548,11 @@ object Test extends StrictLogging {
   }
 
   private val HelloWorldContent = Content("Hello, World!", TextPlainContentType)
+  private val VsctJsonContent = Content(VsctJson, ApplicationJsonContentType)
   private val Json1kContent = Content(Json1k, ApplicationJsonContentType)
   private val Json10kContent = Content(Json10k, ApplicationJsonContentType)
   private val Json100kContent = Content(Json100k, ApplicationJsonContentType)
-  private val Json1000kContent = Content(Json1000k, ApplicationJsonContentType)
+  private val Json1MContent = Content(Json1M, ApplicationJsonContentType)
 
 
   def resourceAsBytes(path: String) = {
@@ -558,12 +565,11 @@ object Test extends StrictLogging {
   }
 
   private def writeResponse(ctx: ChannelHandlerContext, response: DefaultFullHttpResponse): Unit = {
-    response.headers.set(CONNECTION, KEEP_ALIVE)
     ctx.writeAndFlush(response)
     logger.debug(s"wrote response=$response")
   }
 
-  private def writeResponse(ctx: ChannelHandlerContext, request: HttpRequest, content: Content): Unit = {
+  private def writeResponse(ctx: ChannelHandlerContext, request: HttpRequest, content: Content, timer: HashedWheelTimer): Unit = {
 
     val compress = acceptGzip(request)
     val bytes = if (compress) content.compressedBytes else content.rawBytes
@@ -578,7 +584,20 @@ object Test extends StrictLogging {
       response.headers.set(CONTENT_ENCODING, GZIP)
     }
 
-    writeResponse(ctx, response)
+    Option(request.headers.get("X-Delay")) match {
+      case Some(delayHeader) =>
+        val delay = delayHeader.toLong
+        timer.newTimeout(new TimerTask {
+          override def run(timeout: Timeout): Unit =
+            if (ctx.channel.isActive) {
+              writeResponse(ctx, response)
+            }
+        }, delay, TimeUnit.MILLISECONDS)
+
+
+      case _ =>
+        writeResponse(ctx, response)
+    }
   }
 
   private def acceptGzip(request: HttpRequest): Boolean =
@@ -586,7 +605,7 @@ object Test extends StrictLogging {
 
   def main(args: Array[String]): Unit = {
 
-    InternalLoggerFactory.setDefaultFactory(new Slf4JLoggerFactory)
+    InternalLoggerFactory.setDefaultFactory(Slf4JLoggerFactory.INSTANCE)
 
     ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.DISABLED)
     val useNativeTransport = java.lang.Boolean.getBoolean("gatling.useNativeTransport")
@@ -596,8 +615,11 @@ object Test extends StrictLogging {
 
     val channelClass: Class[_ <: ServerSocketChannel] = if (useNativeTransport) classOf[EpollServerSocketChannel] else classOf[NioServerSocketChannel]
 
+    val timer = new HashedWheelTimer(10, TimeUnit.MILLISECONDS)
+    timer.start()
+
     val bootstrap = new ServerBootstrap()
-      .option[Integer](ChannelOption.SO_BACKLOG, 1024)
+      .option[Integer](ChannelOption.SO_BACKLOG, 2 * 1024)
       .group(bossGroup, workerGroup)
       .channel(channelClass)
       .childHandler(new ChannelInitializer[Channel] {
@@ -608,7 +630,6 @@ object Test extends StrictLogging {
             .addLast("decoder", new HttpRequestDecoder(4096, 8192, 8192, false))
             .addLast("aggregator", new HttpObjectAggregator(30000))
             .addLast("encoder", new HttpResponseEncoder)
-            .addLast("idleStateHandler", new IdleStateHandler(5, 0, 0))
             .addLast("handler", new ChannelInboundHandlerAdapter {
 
               override def userEventTriggered(ctx: ChannelHandlerContext, evt: AnyRef): Unit =
@@ -625,14 +646,15 @@ object Test extends StrictLogging {
               override def channelRead(ctx: ChannelHandlerContext, msg: AnyRef): Unit =
                 msg match {
                   case request: FullHttpRequest =>
-                    request.content.release() // FIXME is this necessary?
+                    ReferenceCountUtil.release(request) // FIXME is this necessary?
 
                     request.getUri match {
-                      case "/hello" => writeResponse(ctx, request, HelloWorldContent)
-                      case "/json1k" => writeResponse(ctx, request, Json1kContent)
-                      case "/json10k" => writeResponse(ctx, request, Json10kContent)
-                      case "/json100k" =>  writeResponse(ctx, request, Json100kContent)
-                      case "/json1000k" =>  writeResponse(ctx, request, Json1000kContent)
+                      case "/hello" => writeResponse(ctx, request, HelloWorldContent, timer)
+                      case "/json1k" => writeResponse(ctx, request, Json1kContent, timer)
+                      case "/json10k" => writeResponse(ctx, request, Json10kContent, timer)
+                      case "/json100k" =>  writeResponse(ctx, request, Json100kContent, timer)
+                      case "/json1M" =>  writeResponse(ctx, request, Json1MContent, timer)
+                      case "/vsct" => writeResponse(ctx, request, VsctJsonContent, timer)
 
                       case uri =>
                         val response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_FOUND)
@@ -646,9 +668,11 @@ object Test extends StrictLogging {
         }
       })
 
-    val f = bootstrap.bind(new InetSocketAddress(8000)).sync
+    val f = bootstrap.bind(new InetSocketAddress(port)).sync
+    logger.info("Server started on port " + port)
     f.channel.closeFuture.sync
     logger.info("stopping")
+    timer.stop()
     bossGroup.shutdownGracefully()
     workerGroup.shutdownGracefully()
   }
