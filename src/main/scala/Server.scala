@@ -20,7 +20,7 @@ import scala.io.{Codec, Source}
 
 import com.typesafe.scalalogging.StrictLogging
 
-object Test extends StrictLogging {
+object Server extends StrictLogging {
 
   implicit val codec = Codec.UTF8
 
