@@ -3,7 +3,6 @@ import java.net.InetSocketAddress
 import java.util.concurrent.TimeUnit
 import java.util.zip.GZIPOutputStream
 
-import com.typesafe.scalalogging.slf4j.StrictLogging
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.buffer.Unpooled
 import io.netty.channel._
@@ -12,24 +11,20 @@ import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.ServerSocketChannel
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.handler.codec.http._
-import HttpHeaders.Names._
-import HttpHeaders.Values._
-import io.netty.handler.timeout.{ IdleState, IdleStateEvent }
+import HttpHeaderNames._
+import HttpHeaderValues._
+import io.netty.handler.timeout.{IdleState, IdleStateEvent}
 import io.netty.util._
 import io.netty.util.internal.logging.{InternalLoggerFactory, Slf4JLoggerFactory}
 import scala.io.{Codec, Source}
 
-object Test extends StrictLogging {
+import com.typesafe.scalalogging.StrictLogging
 
-  private val TextPlainContentType = HttpHeaders.newEntity("text/plain")
-  private val ApplicationJsonContentType = HttpHeaders.newEntity("application/json")
+object Test extends StrictLogging {
 
   implicit val codec = Codec.UTF8
 
   private val port = 8000
-
-  private val VsctJson =
-    """{"status":"SUCCESS","comment":null,"appModifier":"TRN","idTech":234224,"login":"JeanPierreToto9@yopmail.com","lastConnexionDate":null,"lastBlockDate":null,"appCreator":null,"title":"mr","lastName":"Leboucher","firstName":"Sebastien","email":"JeanPierreToto9@yopmail.com","address":"37 rue des sazières","address2":"chemin","zip":"92700","city":"Elbeuf","souscription":"Navigo_Annuel","cardType":"Enfans_Familles_Nombreuses","zone":"ZONE1_3","inscriptionNewsletter":true,"cgu":true,"blockFlag":false,"codePays":"FRANCE","codeLanguage":"FRANCAIS","creationDate":1466664699000,"lastModificationDate":1478526894000,"birthdate":null,"phoneNumber":null,"inscriptionPanel":true,"mobility":null,"transportation":null,"pmrPref":null,"accesPlus":true,"infosMedia":{}}"""
 
   private val Json1k =
     """{"flavors":[
@@ -547,13 +542,11 @@ object Test extends StrictLogging {
     }
   }
 
-  private val HelloWorldContent = Content("Hello, World!", TextPlainContentType)
-  private val VsctJsonContent = Content(VsctJson, ApplicationJsonContentType)
-  private val Json1kContent = Content(Json1k, ApplicationJsonContentType)
-  private val Json10kContent = Content(Json10k, ApplicationJsonContentType)
-  private val Json100kContent = Content(Json100k, ApplicationJsonContentType)
-  private val Json1MContent = Content(Json1M, ApplicationJsonContentType)
-
+  private val HelloWorldContent = Content("Hello, World!", TEXT_PLAIN)
+  private val Json1kContent = Content(Json1k, APPLICATION_JSON)
+  private val Json10kContent = Content(Json10k, APPLICATION_JSON)
+  private val Json100kContent = Content(Json100k, APPLICATION_JSON)
+  private val Json1MContent = Content(Json1M, APPLICATION_JSON)
 
   def resourceAsBytes(path: String) = {
     val source = Source.fromInputStream(getClass.getClassLoader.getResourceAsStream(path))
@@ -587,11 +580,8 @@ object Test extends StrictLogging {
     Option(request.headers.get("X-Delay")) match {
       case Some(delayHeader) =>
         val delay = delayHeader.toLong
-        timer.newTimeout(new TimerTask {
-          override def run(timeout: Timeout): Unit =
-            if (ctx.channel.isActive) {
-              writeResponse(ctx, response)
-            }
+        timer.newTimeout(timeout => if (ctx.channel.isActive) {
+          writeResponse(ctx, response)
         }, delay, TimeUnit.MILLISECONDS)
 
 
@@ -645,22 +635,21 @@ object Test extends StrictLogging {
 
               override def channelRead(ctx: ChannelHandlerContext, msg: AnyRef): Unit =
                 msg match {
-                  case request: FullHttpRequest if request.getUri == "/echo" =>
+                  case request: FullHttpRequest if request.uri == "/echo" =>
                     val content = request.content()
                     val response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, content)
-                    response.headers().add(HttpHeaders.Names.CONTENT_LENGTH, content.readableBytes)
+                    response.headers().add(CONTENT_LENGTH, content.readableBytes)
                     writeResponse(ctx, response)
 
                   case request: FullHttpRequest =>
                     ReferenceCountUtil.release(request) // FIXME is this necessary?
 
-                    request.getUri match {
+                    request.uri match {
                       case "/hello" => writeResponse(ctx, request, HelloWorldContent, timer)
                       case "/json1k" => writeResponse(ctx, request, Json1kContent, timer)
                       case "/json10k" => writeResponse(ctx, request, Json10kContent, timer)
                       case "/json100k" =>  writeResponse(ctx, request, Json100kContent, timer)
                       case "/json1M" =>  writeResponse(ctx, request, Json1MContent, timer)
-                      case "/vsct" => writeResponse(ctx, request, VsctJsonContent, timer)
 
                       case uri =>
                         val response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_FOUND)
