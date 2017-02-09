@@ -10,6 +10,7 @@ object Dependencies {
   private val slf4j                = "org.slf4j"                   % "slf4j-api"                       % "1.7.22"
   private val logback              = "ch.qos.logback"              % "logback-classic"                 % "1.2.1"
   private val scalaLogging         = "com.typesafe.scala-logging"  %% "scala-logging"                  % "3.5.0"
+  private val commonsIo            = "commons-io"                  % "commons-io"                      % "2.5"
 
-  val allDeps = Seq(nettyHttp, nettyHandler, nettyNativeTransport, nettyBoringSsl, javassist, slf4j, logback, scalaLogging)
+  val allDeps = Seq(nettyHttp, nettyHandler, nettyNativeTransport, nettyBoringSsl, javassist, slf4j, logback, scalaLogging, commonsIo)
 }
