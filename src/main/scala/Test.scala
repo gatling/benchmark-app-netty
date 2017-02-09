@@ -645,6 +645,12 @@ object Test extends StrictLogging {
 
               override def channelRead(ctx: ChannelHandlerContext, msg: AnyRef): Unit =
                 msg match {
+                  case request: FullHttpRequest if request.getUri == "/echo" =>
+                    val content = request.content()
+                    val response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, content)
+                    response.headers().add(HttpHeaders.Names.CONTENT_LENGTH, content.readableBytes)
+                    writeResponse(ctx, response)
+
                   case request: FullHttpRequest =>
                     ReferenceCountUtil.release(request) // FIXME is this necessary?
 
