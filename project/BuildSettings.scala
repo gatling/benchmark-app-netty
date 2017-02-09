@@ -3,7 +3,6 @@ import sbt.Keys._
 
 import com.typesafe.sbt.SbtScalariform
 import com.typesafe.sbt.SbtScalariform.ScalariformKeys
-import net.virtualvoid.sbt.graph.Plugin.graphSettings
 
 object BuildSettings {
 
