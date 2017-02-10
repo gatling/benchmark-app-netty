@@ -19,6 +19,8 @@ import io.netty.util.internal.logging.{InternalLoggerFactory, Slf4JLoggerFactory
 import scala.io.{Codec, Source}
 
 import com.typesafe.scalalogging.StrictLogging
+import io.netty.handler.ssl.SslContextBuilder
+import io.netty.handler.ssl.util.SelfSignedCertificate
 import org.apache.commons.io.IOUtils
 
 object Server extends StrictLogging {
@@ -103,9 +105,13 @@ object Server extends StrictLogging {
 
     ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.DISABLED)
     val useNativeTransport = java.lang.Boolean.getBoolean("gatling.useNativeTransport")
+    val useHttps = java.lang.Boolean.getBoolean("gatling.useHttps")
 
     val bossGroup = if (useNativeTransport) new EpollEventLoopGroup else new NioEventLoopGroup
     val workerGroup = if (useNativeTransport) new EpollEventLoopGroup else new NioEventLoopGroup
+
+    val ssc = new SelfSignedCertificate
+    val sslContext = SslContextBuilder.forServer(ssc.certificate, ssc.privateKey).build()
 
     val channelClass: Class[_ <: ServerSocketChannel] = if (useNativeTransport) classOf[EpollServerSocketChannel] else classOf[NioServerSocketChannel]
 
@@ -118,7 +124,11 @@ object Server extends StrictLogging {
       .channel(channelClass)
       .childHandler(new ChannelInitializer[Channel] {
         override def initChannel(ch: Channel): Unit = {
-          ch.pipeline()
+          val pipeline = ch.pipeline
+          if (useHttps) {
+            pipeline.addLast(sslContext.newHandler(ch.alloc))
+          }
+          pipeline
             // don't validate headers
             .addLast("idleTimer", new CloseOnIdleReadTimeoutHandler(1))
             .addLast("decoder", new HttpRequestDecoder(4096, 8192, 8192, false))
