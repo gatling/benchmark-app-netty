@@ -19,7 +19,7 @@ import io.netty.util.internal.logging.{InternalLoggerFactory, Slf4JLoggerFactory
 import scala.io.{Codec, Source}
 
 import com.typesafe.scalalogging.StrictLogging
-import io.netty.handler.ssl.SslContextBuilder
+import io.netty.handler.ssl.{SslContextBuilder, SslProvider}
 import io.netty.handler.ssl.util.SelfSignedCertificate
 import org.apache.commons.io.IOUtils
 
@@ -106,12 +106,16 @@ object Server extends StrictLogging {
     ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.DISABLED)
     val useNativeTransport = java.lang.Boolean.getBoolean("gatling.useNativeTransport")
     val useHttps = java.lang.Boolean.getBoolean("gatling.useHttps")
+    val useOpenSsl = java.lang.Boolean.getBoolean("gatling.useOpenSsl")
 
     val bossGroup = if (useNativeTransport) new EpollEventLoopGroup else new NioEventLoopGroup
     val workerGroup = if (useNativeTransport) new EpollEventLoopGroup else new NioEventLoopGroup
 
     val ssc = new SelfSignedCertificate
-    val sslContext = SslContextBuilder.forServer(ssc.certificate, ssc.privateKey).build()
+    val sslContext = SslContextBuilder
+      .forServer(ssc.certificate, ssc.privateKey)
+      .sslProvider(if (useOpenSsl) SslProvider.OPENSSL else SslProvider.JDK)
+      .build()
 
     val channelClass: Class[_ <: ServerSocketChannel] = if (useNativeTransport) classOf[EpollServerSocketChannel] else classOf[NioServerSocketChannel]
 
