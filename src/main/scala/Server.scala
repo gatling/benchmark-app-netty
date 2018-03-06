@@ -164,7 +164,6 @@ object Server extends StrictLogging {
                     writeResponse(ctx, response)
 
                   case request: FullHttpRequest =>
-                    logger.error(request)
                     ReferenceCountUtil.release(request) // FIXME is this necessary?
 
                     request.uri match {
