@@ -3,7 +3,7 @@ import java.util.concurrent.TimeUnit
 import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.timeout.{ IdleState, IdleStateEvent, IdleStateHandler }
 
-class CloseOnIdleReadTimeoutHandler(readerIdleTime: Long) extends IdleStateHandler(readerIdleTime, 0L, 0L, TimeUnit.SECONDS) {
+class CloseOnIdleReadTimeoutHandler(readerIdleTime: Long) extends IdleStateHandler(readerIdleTime, 5000L, 5000L, TimeUnit.SECONDS) {
 
   override def channelIdle(ctx: ChannelHandlerContext, evt: IdleStateEvent): Unit =
     evt.state match {
