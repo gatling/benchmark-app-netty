@@ -70,6 +70,8 @@ object Server extends StrictLogging {
 
   private def writeResponse(ctx: ChannelHandlerContext, request: HttpRequest, content: Content, timer: HashedWheelTimer): Unit = {
 
+    logger.error("Coucou")
+
     val compress = acceptGzip(request)
     val bytes = if (compress) content.compressedBytes else content.rawBytes
 
@@ -85,7 +87,7 @@ object Server extends StrictLogging {
 
     Option(request.headers.get("X-Delay")) match {
       case Some(delayHeader) =>
-        System.out.println("Delay!!!")
+        logger.error("Delay!!!")
         val delay = delayHeader.toLong
         timer.newTimeout(_ => if (ctx.channel.isActive) {
           writeResponse(ctx, response)
@@ -93,7 +95,7 @@ object Server extends StrictLogging {
 
 
       case _ =>
-        System.out.println("No delay!!!")
+        logger.error("No delay!!!")
         writeResponse(ctx, response)
     }
   }
