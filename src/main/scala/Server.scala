@@ -70,8 +70,6 @@ object Server extends StrictLogging {
 
   private def writeResponse(ctx: ChannelHandlerContext, request: HttpRequest, content: Content, timer: HashedWheelTimer): Unit = {
 
-    logger.error("Coucou")
-
     val compress = acceptGzip(request)
     val bytes = if (compress) content.compressedBytes else content.rawBytes
 
@@ -149,8 +147,8 @@ object Server extends StrictLogging {
                 }
 
               override def exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable): Unit = cause match {
-                case ioe: IOException => ctx.channel.close()
-                case _                => ctx.fireExceptionCaught(cause)
+                case _: IOException => ctx.channel.close()
+                case _              => ctx.fireExceptionCaught(cause)
               }
 
               override def channelRead(ctx: ChannelHandlerContext, msg: AnyRef): Unit =
@@ -170,7 +168,7 @@ object Server extends StrictLogging {
                       case "/json10k" => writeResponse(ctx, request, Json10kContent, timer)
                       case "/news" => writeResponse(ctx, request, NewsContent, timer)
 
-                      case uri =>
+                      case _ =>
                         val response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_FOUND)
                         writeResponse(ctx, response)
                     }
