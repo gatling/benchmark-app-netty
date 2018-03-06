@@ -142,12 +142,16 @@ object Server extends StrictLogging {
 
               override def userEventTriggered(ctx: ChannelHandlerContext, evt: AnyRef): Unit =
                 evt match {
-                  case e: IdleStateEvent if e.state == IdleState.READER_IDLE => ctx.close()
+                  case e: IdleStateEvent if e.state == IdleState.READER_IDLE =>
+                    logger.info("Idle => closing")
+                    ctx.close()
                   case _ =>
                 }
 
               override def exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable): Unit = cause match {
-                case _: IOException => ctx.channel.close()
+                case ioe: IOException =>
+                  ioe.printStackTrace()
+                  ctx.channel.close()
                 case _              => ctx.fireExceptionCaught(cause)
               }
 
