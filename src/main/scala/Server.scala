@@ -134,7 +134,7 @@ object Server extends StrictLogging {
           }
           pipeline
             // don't validate headers
-            .addLast("idleTimer", new CloseOnIdleReadTimeoutHandler(1))
+//            .addLast("idleTimer", new CloseOnIdleReadTimeoutHandler(1))
             .addLast("decoder", new HttpRequestDecoder(4096, 8192, 8192, false))
             .addLast("aggregator", new HttpObjectAggregator(30000))
             .addLast("encoder", new HttpResponseEncoder)
