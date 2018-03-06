@@ -87,7 +87,6 @@ object Server extends StrictLogging {
 
     Option(request.headers.get("X-Delay")) match {
       case Some(delayHeader) =>
-        logger.error("Delay!!!")
         val delay = delayHeader.toLong
         timer.newTimeout(_ => if (ctx.channel.isActive) {
           writeResponse(ctx, response)
@@ -95,7 +94,6 @@ object Server extends StrictLogging {
 
 
       case _ =>
-        logger.error("No delay!!!")
         writeResponse(ctx, response)
     }
   }
