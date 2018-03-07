@@ -101,6 +101,9 @@ object Server extends StrictLogging {
 
   def main(args: Array[String]): Unit = {
 
+    logger.info(s"os.name ${System.getProperty("os.name")}")
+    logger.info(s"os.version ${System.getProperty("os.version")}")
+
     InternalLoggerFactory.setDefaultFactory(Slf4JLoggerFactory.INSTANCE)
 
     ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.DISABLED)
