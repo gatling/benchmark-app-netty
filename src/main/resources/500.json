@@ -1,0 +1,5 @@
+{"flavors":[
+  {"id":"1","links":[{"href":"http://openstack.example.com/v2/aa/1","rel":"self"},{"href":"http://openstack.example.com/1","rel":"bookmark"}],"name":"m1.tiny"},
+  {"id":"2","links":[{"href":"http://openstack.example.com/v2/aa/2","rel":"self"},{"href":"http://openstack.example.com/2","rel":"bookmark"}],"name":"m1.small"},
+  {"id":"3","links":[{"href":"http://openstack.example.com/v2/a/3","rel":"self"},{"href":"http://openstack.example.com/3","rel":"bookmark"}],"name":"m1.medium"}]
+}
