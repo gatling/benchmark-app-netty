@@ -180,6 +180,10 @@ object Server extends StrictLogging {
                         case "/json1k" => writeResponse(ctx, request, Json1kContent)
                         case "/json10k" => writeResponse(ctx, request, Json10kContent)
                         case "/news" => writeResponse(ctx, request, NewsContent)
+                        case s if s.startsWith("/infinite-redirect") =>
+                          val response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.TEMPORARY_REDIRECT)
+                          response.headers().set(HttpHeaderNames.LOCATION, "/infinite-redirect")
+                          writeResponse(ctx, response)
                         case _ => writeResponse(ctx, new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_FOUND))
                       }
                     }
