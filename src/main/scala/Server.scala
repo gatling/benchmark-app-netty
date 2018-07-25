@@ -64,6 +64,12 @@ object Server extends StrictLogging {
   }
 
   private def writeResponse(ctx: ChannelHandlerContext, response: DefaultFullHttpResponse): Unit = {
+    if (
+      !response.headers().contains(CONTENT_LENGTH) &&
+      !response.headers().contains(TRANSFER_ENCODING)) {
+      response.headers().set(CONTENT_LENGTH, response.content().readableBytes())
+    }
+
     ctx.writeAndFlush(response)
     logger.debug(s"wrote response=$response")
   }
