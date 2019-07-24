@@ -20,7 +20,6 @@ import io.netty.handler.ssl.util.SelfSignedCertificate
 import io.netty.handler.ssl.{SslContextBuilder, SslProvider}
 import io.netty.handler.timeout.{IdleState, IdleStateEvent}
 import io.netty.util._
-import io.netty.util.internal.logging.{InternalLoggerFactory, Slf4JLoggerFactory}
 
 object Server extends StrictLogging {
 
@@ -66,8 +65,8 @@ object Server extends StrictLogging {
   private def writeResponse(ctx: ChannelHandlerContext, response: DefaultFullHttpResponse): Unit = {
     if (
       !response.headers().contains(CONTENT_LENGTH) &&
-      !response.headers().contains(TRANSFER_ENCODING)) {
-      response.headers().set(CONTENT_LENGTH, response.content().readableBytes())
+        !response.headers().contains(TRANSFER_ENCODING)) {
+      response.headers().set(CONTENT_LENGTH, response.content.readableBytes)
     }
 
     ctx.writeAndFlush(response)
@@ -92,7 +91,7 @@ object Server extends StrictLogging {
     Option(request.headers.get("X-Delay")) match {
       case Some(delayHeader) =>
         val delay = delayHeader.toLong
-        ctx.executor().schedule(new Runnable {
+        ctx.executor.schedule(new Runnable {
           override def run(): Unit =
             if (ctx.channel.isActive) {
               writeResponse(ctx, response)
@@ -111,8 +110,6 @@ object Server extends StrictLogging {
 
     logger.info(s"os.name ${System.getProperty("os.name")}")
     logger.info(s"os.version ${System.getProperty("os.version")}")
-
-    InternalLoggerFactory.setDefaultFactory(Slf4JLoggerFactory.INSTANCE)
 
     ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.DISABLED)
     val useNativeTransport = java.lang.Boolean.getBoolean("gatling.useNativeTransport")
