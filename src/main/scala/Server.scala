@@ -155,7 +155,10 @@ object Server extends StrictLogging {
 
               override def exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable): Unit = cause match {
                 case ioe: IOException =>
-                  ioe.printStackTrace()
+                  if (ioe.getMessage != "Connection reset by peer") {
+                    // ignore, this is just Gatling aborting
+                    ioe.printStackTrace()
+                  }
                   ctx.channel.close()
                 case _ => ctx.fireExceptionCaught(cause)
               }
