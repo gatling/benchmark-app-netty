@@ -114,7 +114,7 @@ object Server extends StrictLogging {
     ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.DISABLED)
     val useNativeTransport = java.lang.Boolean.getBoolean("gatling.useNativeTransport")
     val useHttps = java.lang.Boolean.getBoolean("gatling.useHttps")
-    val useOpenSsl = java.lang.Boolean.getBoolean("gatling.useOpenSsl")
+    val useOpenSsl = sys.props.get("gatling.useOpenSsl").map(_.toBoolean).getOrElse(true)
 
     val bossGroup = if (useNativeTransport) new EpollEventLoopGroup else new NioEventLoopGroup
     val workerGroup = if (useNativeTransport) new EpollEventLoopGroup else new NioEventLoopGroup
