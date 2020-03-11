@@ -48,6 +48,8 @@ object Server extends StrictLogging {
   }
 
   private val HelloWorldContent = Content.fromText("Hello, World!", TEXT_PLAIN)
+  private val Json100Content = Content.fromResource("100.json", APPLICATION_JSON)
+  private val Json250Content = Content.fromResource("250.json", APPLICATION_JSON)
   private val Json500Content = Content.fromResource("500.json", APPLICATION_JSON)
   private val Json1kContent = Content.fromResource("1k.json", APPLICATION_JSON)
   private val Json10kContent = Content.fromResource("10k.json", APPLICATION_JSON)
@@ -176,6 +178,8 @@ object Server extends StrictLogging {
                     } else {
                       request.uri match {
                         case "/hello" => writeResponse(ctx, request, HelloWorldContent)
+                        case "/json100" => writeResponse(ctx, request, Json100Content)
+                        case "/json250" => writeResponse(ctx, request, Json250Content)
                         case "/json500" => writeResponse(ctx, request, Json500Content)
                         case "/json1k" => writeResponse(ctx, request, Json1kContent)
                         case "/json10k" => writeResponse(ctx, request, Json10kContent)

@@ -1,0 +1,5 @@
+{"flavors":[
+  {"id":"1","links":[{"href":"http://openstack.example.com/v2/aa/1","rel":"self"},{"href":"http://openstack.example.com/1","rel":"bookmark"}],"name":"m1.tiny"},
+  {"id":"2","links":[{"href":"http://openstack.example.com/v2/a/2"}]}
+  ]
+}

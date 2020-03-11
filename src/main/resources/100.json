@@ -1,0 +1,4 @@
+{"flavors":[
+  {"id":"1","links":[{"href":"http://openstack.example.com/v2/aa/1","rel":"self"}]}
+  ]
+}
