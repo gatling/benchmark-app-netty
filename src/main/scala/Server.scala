@@ -36,6 +36,7 @@ object Server extends StrictLogging {
     val Json500 = Content("/json/500.json", APPLICATION_JSON)
     val Json1k = Content("/json/1k.json", APPLICATION_JSON)
     val Json10k = Content("/json/10k.json", APPLICATION_JSON)
+    val Html46k = Content("/html/46k.html", HtmlContentType)
     val Html232k = Content("/html/232k.html", HtmlContentType)
 
     def apply(path: String, contentType: CharSequence): Content = {
@@ -172,6 +173,7 @@ object Server extends StrictLogging {
                       case Content.Json500.path => writeResponse(ctx, request, Content.Json500)
                       case Content.Json1k.path => writeResponse(ctx, request, Content.Json1k)
                       case Content.Json10k.path => writeResponse(ctx, request, Content.Json10k)
+                      case Content.Html46k.path => writeResponse(ctx, request, Content.Html46k)
                       case Content.Html232k.path => writeResponse(ctx, request, Content.Html232k)
                       case _ => writeResponse(ctx, new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_FOUND))
                     }
