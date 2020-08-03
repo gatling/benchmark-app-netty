@@ -30,39 +30,35 @@ object Server extends StrictLogging {
   private val httpsPort = 8001
 
   object Content {
-    def fromText(text: String, contentType: CharSequence): Content =
-      new Content(text.getBytes(UTF_8), contentType)
+    val HelloWorld = Content("/txt/hello.txt", TEXT_PLAIN)
+    val Json100 = Content("/json/100.json", APPLICATION_JSON)
+    val Json250 = Content("/json/250.json", APPLICATION_JSON)
+    val Json500 = Content("/json/500.json", APPLICATION_JSON)
+    val Json1k = Content("/json/1k.json", APPLICATION_JSON)
+    val Json10k = Content("/json/10k.json", APPLICATION_JSON)
+    val Html232k = Content("/html/232k.html", HtmlContentType)
 
-    def fromResource(res: String, contentType: CharSequence): Content =
-      new Content(resourceAsBytes(res), contentType)
+    def apply(path: String, contentType: CharSequence): Content = {
+      val source = Source.fromInputStream(getClass.getClassLoader.getResourceAsStream(path.drop(1)))
+      try {
+        val rawBytes = source.mkString.getBytes(UTF_8)
+        val compressedBytes: Array[Byte] = {
+          val baos = new ByteArrayOutputStream
+          val gzip = new GZIPOutputStream(baos)
+          gzip.write(rawBytes)
+          gzip.close()
+          baos.toByteArray
+        }
 
-    val HelloWorld = Content.fromText("Hello, World!", TEXT_PLAIN)
-    val Json100 = Content.fromResource("100.json", APPLICATION_JSON)
-    val Json250 = Content.fromResource("250.json", APPLICATION_JSON)
-    val Json500 = Content.fromResource("500.json", APPLICATION_JSON)
-    val Json1k = Content.fromResource("1k.json", APPLICATION_JSON)
-    val Json10k = Content.fromResource("10k.json", APPLICATION_JSON)
-    val News = Content.fromResource("news.html", HtmlContentType)
-  }
+        new Content(path, rawBytes, compressedBytes, contentType)
 
-  case class Content(rawBytes: Array[Byte], contentType: CharSequence) {
-    val compressedBytes: Array[Byte] = {
-      val baos = new ByteArrayOutputStream
-      val gzip = new GZIPOutputStream(baos)
-      gzip.write(rawBytes)
-      gzip.close()
-      baos.toByteArray
+      } finally {
+        source.close()
+      }
     }
   }
 
-  private def resourceAsBytes(path: String) = {
-    val source = Source.fromInputStream(getClass.getClassLoader.getResourceAsStream(path))
-    try {
-      source.mkString.getBytes(UTF_8)
-    } finally {
-      source.close()
-    }
-  }
+  case class Content(path: String, rawBytes: Array[Byte], compressedBytes: Array[Byte], contentType: CharSequence)
 
   private def writeResponse(ctx: ChannelHandlerContext, response: DefaultFullHttpResponse): Unit = {
     response.headers.set(CONTENT_LENGTH, response.content.readableBytes)
@@ -116,7 +112,7 @@ object Server extends StrictLogging {
     val sslContext = SslContextBuilder
       .forServer(ssc.certificate, ssc.privateKey)
       .sslProvider(SslProvider.OPENSSL)
-      .protocols("TLSv1.3")
+      .protocols("TLSv1.3", "TLSv1.2", "TLSv1.1", "TLSv1")
       .build()
 
     val channelClass: Class[_ <: ServerSocketChannel] = if (useNativeTransport) classOf[EpollServerSocketChannel] else classOf[NioServerSocketChannel]
@@ -162,14 +158,13 @@ object Server extends StrictLogging {
                     writeResponse(ctx, response)
                   } else {
                     request.uri match {
-                      case "/hello" => writeResponse(ctx, request, Content.HelloWorld)
-                      case "/json100" => writeResponse(ctx, request, Content.Json100)
-                      case "/json250" => writeResponse(ctx, request, Content.Json250)
-                      case "/json500" => writeResponse(ctx, request, Content.Json500)
-                      case "/json1k" => writeResponse(ctx, request, Content.Json1k)
-                      case "/json10k" => writeResponse(ctx, request, Content.Json10k)
-                      case "/news" => writeResponse(ctx, request, Content.News)
-                      case "/post" => writeResponse(ctx, request, Content.HelloWorld)
+                      case Content.HelloWorld.path => writeResponse(ctx, request, Content.HelloWorld)
+                      case Content.Json100.path => writeResponse(ctx, request, Content.Json100)
+                      case Content.Json250.path => writeResponse(ctx, request, Content.Json250)
+                      case Content.Json500.path => writeResponse(ctx, request, Content.Json500)
+                      case Content.Json1k.path => writeResponse(ctx, request, Content.Json1k)
+                      case Content.Json10k.path => writeResponse(ctx, request, Content.Json10k)
+                      case Content.Html232k.path => writeResponse(ctx, request, Content.Html232k)
                       case _ => writeResponse(ctx, new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_FOUND))
                     }
                   }
