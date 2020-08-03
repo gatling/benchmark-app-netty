@@ -4,7 +4,7 @@ import java.nio.charset.StandardCharsets.UTF_8
 import java.util.concurrent.TimeUnit
 import java.util.zip.GZIPOutputStream
 
-import scala.io.Source
+import scala.io.{Codec, Source}
 import com.typesafe.scalalogging.StrictLogging
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.buffer.Unpooled
@@ -39,9 +39,11 @@ object Server extends StrictLogging {
     val Html232k = Content("/html/232k.html", HtmlContentType)
 
     def apply(path: String, contentType: CharSequence): Content = {
-      val source = Source.fromInputStream(getClass.getClassLoader.getResourceAsStream(path.drop(1)))
+      val is = getClass.getClassLoader.getResourceAsStream(path)
+      require(is != null, s"Couldn't locate resource $path in ClassLoader")
+
       try {
-        val rawBytes = source.mkString.getBytes(UTF_8)
+        val rawBytes = Source.fromInputStream(is)(Codec.UTF8).mkString.getBytes(UTF_8)
         val compressedBytes: Array[Byte] = {
           val baos = new ByteArrayOutputStream
           val gzip = new GZIPOutputStream(baos)
@@ -53,7 +55,7 @@ object Server extends StrictLogging {
         new Content(path, rawBytes, compressedBytes, contentType)
 
       } finally {
-        source.close()
+        is.close()
       }
     }
   }
