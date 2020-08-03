@@ -39,7 +39,10 @@ object Server extends StrictLogging {
     val Html232k = Content("/html/232k.html", HtmlContentType)
 
     def apply(path: String, contentType: CharSequence): Content = {
-      val is = getClass.getClassLoader.getResourceAsStream(path)
+      var is = getClass.getClassLoader.getResourceAsStream(path)
+      if (is == null) {
+        is = getClass.getClassLoader.getResourceAsStream(path.drop(1))
+      }
       require(is != null, s"Couldn't locate resource $path in ClassLoader")
 
       try {
@@ -103,6 +106,9 @@ object Server extends StrictLogging {
 
     logger.info(s"os.name ${System.getProperty("os.name")}")
     logger.info(s"os.version ${System.getProperty("os.version")}")
+
+    // eager load
+    Content.Json1k
 
     ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.DISABLED)
     val useNativeTransport = !PlatformDependent.isOsx && !PlatformDependent.isWindows
