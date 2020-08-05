@@ -150,7 +150,7 @@ object Server extends StrictLogging {
             override def exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable): Unit = cause match {
               case ioe: IOException =>
                 val root = if (ioe.getCause != null) ioe.getCause else ioe
-                if (root.getMessage != "Connection reset by peer") {
+                if (!(root.getMessage != null && root.getMessage.endsWith("Connection reset by peer"))) {
                   // ignore, this is just client aborting
                   ioe.printStackTrace()
                 }
