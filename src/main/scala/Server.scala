@@ -109,7 +109,7 @@ object Server extends StrictLogging {
     logger.info(s"os.version ${System.getProperty("os.version")}")
 
     // eager load
-    Content.Json1k
+    val _ = Content.Json1k
 
     ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.DISABLED)
     val useNativeTransport = !PlatformDependent.isOsx && !PlatformDependent.isWindows
