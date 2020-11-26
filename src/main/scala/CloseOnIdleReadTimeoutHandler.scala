@@ -1,9 +1,11 @@
 import java.util.concurrent.TimeUnit
 
 import io.netty.channel.ChannelHandlerContext
-import io.netty.handler.timeout.{ IdleState, IdleStateEvent, IdleStateHandler }
+import io.netty.handler.timeout.{IdleState, IdleStateEvent, IdleStateHandler}
 
-class CloseOnIdleReadTimeoutHandler(readerIdleTime: Long) extends IdleStateHandler(readerIdleTime, 5000L, 5000L, TimeUnit.SECONDS) {
+import scala.concurrent.duration.FiniteDuration
+
+class CloseOnIdleReadTimeoutHandler(readerIdleTimeOut: FiniteDuration) extends IdleStateHandler(readerIdleTimeOut.toSeconds, 65, 65, TimeUnit.SECONDS) {
 
   override def channelIdle(ctx: ChannelHandlerContext, evt: IdleStateEvent): Unit =
     evt.state match {
