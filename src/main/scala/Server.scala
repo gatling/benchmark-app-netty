@@ -60,7 +60,7 @@ object Server extends StrictLogging {
          |* /html/(46k|232k).html
          |
          |* "accept-encoding" header controls gzip
-         |* "X-Delay" header controls delay (Int)
+         |* "X-Delay" header controls delay (Int millis)
          |* "X-UseLogNormalDelay" header controls using log normal distribution for delay instead of constant value
          |
          |WebSocket:
