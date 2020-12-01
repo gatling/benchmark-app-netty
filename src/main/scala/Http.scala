@@ -93,7 +93,7 @@ class Http(clearPort: Int, securedPort: Int, sslContext: SslContext, readIdleTim
               case request: FullHttpRequest =>
 
                 if (request.uri == "/echo") {
-                  val response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, request.content)
+                  val response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, request.content.retain())
                   writeResponse(ctx, response)
                 } else {
                   request.uri match {
