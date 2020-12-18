@@ -55,6 +55,7 @@ object Server extends StrictLogging {
          |HTTP:
          |=====
          |* /echo
+         |* /redirect/endpoint
          |* /txt/hello.txt
          |* /json/(100|250|500|1k|10k).json
          |* /html/(46k|232k).html

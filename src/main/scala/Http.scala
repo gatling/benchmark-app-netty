@@ -1,7 +1,6 @@
 import java.io.IOException
 import java.net.InetSocketAddress
 import java.util.concurrent.TimeUnit
-
 import com.typesafe.scalalogging.StrictLogging
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.buffer.Unpooled
@@ -14,6 +13,7 @@ import io.netty.handler.timeout.{IdleState, IdleStateEvent}
 import io.netty.util.ReferenceCountUtil
 import org.apache.commons.math3.distribution.LogNormalDistribution
 
+import scala.jdk.CollectionConverters._
 import scala.concurrent.duration.FiniteDuration
 
 class Http(clearPort: Int, securedPort: Int, sslContext: SslContext, readIdleTimeout: FiniteDuration) extends StrictLogging {
@@ -91,10 +91,36 @@ class Http(clearPort: Int, securedPort: Int, sslContext: SslContext, readIdleTim
           try {
             msg match {
               case request: FullHttpRequest =>
-
                 if (request.uri == "/echo") {
                   val response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, request.content.retain())
                   writeResponse(ctx, response)
+
+                } else if (request.uri == "/redirect/infinite") {
+                  val response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.FOUND)
+                  response.headers.add(HttpHeaderNames.LOCATION, "/redirect/infinite")
+                  writeResponse(ctx, response)
+
+                } else if (request.uri == "/redirect/endpoint") {
+                  val redirectCookie = Option(request.headers.get(HttpHeaderNames.COOKIE))
+                    .map(cookie.ServerCookieDecoder.STRICT.decode)
+                    .flatMap(_.asScala.collectFirst{ case cookie if cookie.name == "RedirectCookie" => cookie.value.toInt})
+                    .getOrElse(0)
+
+                  val newRedirectCookie = new cookie.DefaultCookie("RedirectCookie", (redirectCookie + 1).toString)
+                  newRedirectCookie.setPath("/redirect")
+
+                  val doRedirect = redirectCookie % 2 == 0
+
+                  val statusCode = if (doRedirect) HttpResponseStatus.FOUND else HttpResponseStatus.OK
+                  val response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, statusCode)
+                  response.headers.add(HttpHeaderNames.SET_COOKIE, cookie.ServerCookieEncoder.STRICT.encode(newRedirectCookie))
+
+                  if (doRedirect) {
+                    response.headers.add(HttpHeaderNames.LOCATION, "/redirect/endpoint")
+                  }
+
+                  writeResponse(ctx, response)
+
                 } else {
                   request.uri match {
                     case Content.HelloWorld.path => writeResponse(ctx, request, Content.HelloWorld)
