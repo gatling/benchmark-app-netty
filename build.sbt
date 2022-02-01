@@ -1,14 +1,15 @@
-scalaVersion := "2.13.7"
+scalaVersion := "2.13.8"
 
 scalacOptions := Seq(
   "-encoding", "UTF-8", "-target:jvm-1.8", "-deprecation",
   "-feature", "-unchecked", "-language:implicitConversions", "-language:postfixOps")
 
-libraryDependencies += "io.netty"                    % "netty-codec-http"                % "4.1.72.Final"
-libraryDependencies += "io.netty"                    % "netty-handler"                   % "4.1.72.Final"
-libraryDependencies += "io.netty"                    % "netty-transport-native-epoll"    % "4.1.72.Final" classifier "linux-x86_64"
-libraryDependencies += "io.netty"                    % "netty-tcnative-boringssl-static" % "2.0.46.Final"
-libraryDependencies += "org.slf4j"                   % "slf4j-api"                       % "1.7.32"
+libraryDependencies += "io.netty"                    % "netty-codec-http"                % "4.1.73.Final"
+libraryDependencies += "io.netty"                    % "netty-handler"                   % "4.1.73.Final"
+libraryDependencies += "io.netty"                    % "netty-transport-native-epoll"    % "4.1.73.Final" classifier "linux-x86_64"
+libraryDependencies += "io.netty"                    % "netty-tcnative-classes"          % "2.0.48.Final"
+libraryDependencies += "io.netty"                    % "netty-tcnative-boringssl-static" % "2.0.48.Final"
+libraryDependencies += "org.slf4j"                   % "slf4j-api"                       % "1.7.35"
 libraryDependencies += "ch.qos.logback"              % "logback-classic"                 % "1.2.10"
 libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging"                   % "3.9.2"
 libraryDependencies += "com.typesafe"                % "config"                          % "1.4.1"
