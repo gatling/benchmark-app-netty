@@ -2,14 +2,14 @@ import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.StrictLogging
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel._
-import io.netty.channel.epoll.{EpollEventLoopGroup, EpollServerSocketChannel}
+import io.netty.channel.epoll.{Epoll, EpollEventLoopGroup, EpollServerSocketChannel}
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.ServerSocketChannel
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.handler.ssl.util.SelfSignedCertificate
 import io.netty.handler.ssl.{SslContextBuilder, SslProvider}
+import io.netty.incubator.channel.uring.{IOUring, IOUringEventLoop, IOUringEventLoopGroup, IOUringServerSocketChannel}
 import io.netty.util._
-import io.netty.util.internal.PlatformDependent
 
 import scala.concurrent.duration.DurationInt
 
@@ -25,13 +25,28 @@ object Server extends StrictLogging {
     val idleTimeout = config.getInt("http.idle") millis
     val wsPort = config.getInt("ws.ports.ws")
     val wssPort = config.getInt("ws.ports.wss")
+    val useEpoll = config.getBoolean("transport.epoll") && Epoll.isAvailable
+    val useIoUring = config.getBoolean("transport.iouring") && IOUring.isAvailable
 
     ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.DISABLED)
-    val useNativeTransport = !PlatformDependent.isOsx && !PlatformDependent.isWindows
 
-    val channelClass: Class[_ <: ServerSocketChannel] = if (useNativeTransport) classOf[EpollServerSocketChannel] else classOf[NioServerSocketChannel]
-    val bossGroup = if (useNativeTransport) new EpollEventLoopGroup else new NioEventLoopGroup
-    val workerGroup = if (useNativeTransport) new EpollEventLoopGroup else new NioEventLoopGroup
+    val channelClass: Class[_ <: ServerSocketChannel] =
+      if (useEpoll) classOf[EpollServerSocketChannel]
+      else if (useIoUring) classOf[IOUringServerSocketChannel]
+      else classOf[NioServerSocketChannel]
+    val bossGroup =
+      if (useEpoll) new EpollEventLoopGroup
+      else if (useIoUring) new IOUringEventLoop
+      else new NioEventLoopGroup
+    val workerGroup =
+      if (useEpoll) new EpollEventLoopGroup
+      else if (useIoUring) new IOUringEventLoopGroup
+      else new NioEventLoopGroup
+    val transportName =
+      if (useEpoll) "epoll"
+      else if (useIoUring) "iouring"
+      else "nio"
+
 
     val sslContext = {
       val cert = new SelfSignedCertificate
@@ -50,7 +65,7 @@ object Server extends StrictLogging {
     val allWhenClose = new Http(httpPort, httpsPort, sslContext, idleTimeout).boot(bootstrap) ++ new Ws(wsPort, wssPort, sslContext).boot(bootstrap)
 
     logger.info(
-      s"""Server started on ports $httpPort (HTTP), $httpsPort (HTTPS), $wsPort (WS) and $wssPort (WSS)
+      s"""Server started on ports $httpPort (HTTP), $httpsPort (HTTPS), $wsPort (WS) and $wssPort (WSS), usng transport $transportName
          |
          |HTTP:
          |=====

@@ -10,7 +10,7 @@ import io.netty.handler.codec.http.websocketx._
 import io.netty.handler.ssl.SslContext
 import io.netty.util.ReferenceCountUtil
 
-class Ws(clearPort: Int, securedPort: Int, sslContext: SslContext) extends StrictLogging {
+final class Ws(clearPort: Int, securedPort: Int, sslContext: SslContext) extends StrictLogging {
 
   private val multipleTimes = "multiple\\?times=(.*)".r
 

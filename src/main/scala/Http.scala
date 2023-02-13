@@ -10,13 +10,18 @@ import io.netty.handler.codec.http.HttpHeaderNames.{ACCEPT_ENCODING, CONTENT_ENC
 import io.netty.handler.codec.http.HttpHeaderValues.GZIP
 import io.netty.handler.ssl.SslContext
 import io.netty.handler.timeout.{IdleState, IdleStateEvent}
-import io.netty.util.ReferenceCountUtil
+import io.netty.util.{AsciiString, ReferenceCountUtil}
 import org.apache.commons.math3.distribution.LogNormalDistribution
 
 import scala.jdk.CollectionConverters._
 import scala.concurrent.duration.FiniteDuration
 
-class Http(clearPort: Int, securedPort: Int, sslContext: SslContext, readIdleTimeout: FiniteDuration) extends StrictLogging {
+object Http {
+  private val XDelayHeader = new AsciiString("X-Delay")
+  private val XUseLogNormalDelayHeader = new AsciiString("X-UseLogNormalDelay")
+}
+
+final class Http(clearPort: Int, securedPort: Int, sslContext: SslContext, readIdleTimeout: FiniteDuration) extends StrictLogging {
 
   private val logNormalDistribution = new LogNormalDistribution()
 
@@ -28,8 +33,8 @@ class Http(clearPort: Int, securedPort: Int, sslContext: SslContext, readIdleTim
 
   private def writeResponse(ctx: ChannelHandlerContext, request: HttpRequest, content: Content): Unit = {
     val acceptGzip = Option(request.headers.get(ACCEPT_ENCODING)).exists(_.contains("gzip"))
-    val maybeDelay = Option(request.headers.get("X-Delay")).map(_.toLong)
-    val useLogNormalDelay = Option(request.headers.get("X-UseLogNormalDelay")).map(_.toBoolean).getOrElse(false)
+    val maybeDelay = Option(request.headers.get(Http.XDelayHeader)).map(_.toLong)
+    val useLogNormalDelay = Option(request.headers.get(Http.XUseLogNormalDelayHeader)).map(_.toBoolean).getOrElse(false)
 
     val bytes = if (acceptGzip) content.compressedBytes else content.rawBytes
     val response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, Unpooled.wrappedBuffer(bytes))
