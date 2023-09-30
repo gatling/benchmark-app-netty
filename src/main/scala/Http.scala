@@ -34,7 +34,7 @@ final class Http(clearPort: Int, securedPort: Int, sslContext: SslContext, readI
   private def writeResponse(ctx: ChannelHandlerContext, request: HttpRequest, content: Content): Unit = {
     val acceptGzip = Option(request.headers.get(ACCEPT_ENCODING)).exists(_.contains("gzip"))
     val maybeDelay = Option(request.headers.get(Http.XDelayHeader)).map(_.toLong)
-    val useLogNormalDelay = Option(request.headers.get(Http.XUseLogNormalDelayHeader)).map(_.toBoolean).getOrElse(false)
+    val useLogNormalDelay = Option(request.headers.get(Http.XUseLogNormalDelayHeader)).exists(_.toBoolean)
 
     val bytes = if (acceptGzip) content.compressedBytes else content.rawBytes
     val response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, Unpooled.wrappedBuffer(bytes))
