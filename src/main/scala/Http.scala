@@ -1,6 +1,6 @@
 import java.io.IOException
 import java.net.InetSocketAddress
-import java.util.concurrent.TimeUnit
+import java.util.concurrent.{ForkJoinPool, TimeUnit}
 import com.typesafe.scalalogging.StrictLogging
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.buffer.Unpooled
@@ -65,7 +65,7 @@ final class Http(clearPort: Int, securedPort: Int, sslContext: SslContext, readI
   private def httpChannelInitializer(sslContext: Option[SslContext]): ChannelInitializer[Channel] =
     (ch: Channel) => {
       val pipeline = ch.pipeline
-      sslContext.foreach(ssl => pipeline.addLast(ssl.newHandler(ch.alloc)))
+      sslContext.foreach(ssl => pipeline.addLast(ssl.newHandler(ch.alloc, ForkJoinPool.commonPool())))
       pipeline
         .addLast("idleTimer", new CloseOnIdleReadTimeoutHandler(readIdleTimeout))
         .addLast("decoder", new HttpRequestDecoder(4096, 8192, 8192, false))
