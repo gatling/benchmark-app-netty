@@ -48,9 +48,10 @@ object Server extends StrictLogging {
       if (useEpoll) new EpollEventLoopGroup(1)
       else if (useIoUring) new IOUringEventLoopGroup(1)
       else new NioEventLoopGroup(1)
+    val availableProcessors = Runtime.getRuntime.availableProcessors
     val workerGroup =
-      if (useEpoll) new EpollEventLoopGroup
-      else if (useIoUring) new IOUringEventLoopGroup
+      if (useEpoll) new EpollEventLoopGroup(availableProcessors)
+      else if (useIoUring) new IOUringEventLoopGroup(availableProcessors)
       else new NioEventLoopGroup
     val transportName =
       if (useEpoll) "epoll"
