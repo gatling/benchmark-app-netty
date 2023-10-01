@@ -1,4 +1,5 @@
 import java.net.InetSocketAddress
+import java.util.concurrent.ForkJoinPool
 
 import com.typesafe.scalalogging.StrictLogging
 import io.netty.bootstrap.ServerBootstrap
@@ -139,7 +140,7 @@ final class Http2(clearPort: Int, securedPort: Int, sslContext: SslContext) exte
     (ch: SocketChannel) => {
       sslContext match {
         case Some(sslContext) =>
-          ch.pipeline().addLast(sslContext.newHandler(ch.alloc), new Http2OrHttpHandler)
+          ch.pipeline().addLast(sslContext.newHandler(ch.alloc, ForkJoinPool.commonPool()), new Http2OrHttpHandler)
         case _ =>
           val p = ch.pipeline
           val sourceCodec = new HttpServerCodec
