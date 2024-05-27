@@ -77,7 +77,7 @@ object Server extends StrictLogging {
         .build()
 
     val bootstrap = new ServerBootstrap()
-      .option[Integer](ChannelOption.SO_BACKLOG, 2 * 1024)
+      .option[Integer](ChannelOption.SO_BACKLOG, 15 * 1024)
       .group(bossGroup, workerGroup)
       .channel(channelClass)
 
