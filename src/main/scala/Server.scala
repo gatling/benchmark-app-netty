@@ -2,15 +2,15 @@ import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.StrictLogging
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel._
-import io.netty.channel.epoll.{Epoll, EpollEventLoopGroup, EpollServerSocketChannel}
-import io.netty.channel.nio.NioEventLoopGroup
+import io.netty.channel.epoll.{Epoll, EpollIoHandler, EpollServerSocketChannel}
+import io.netty.channel.nio.NioIoHandler
 import io.netty.channel.socket.ServerSocketChannel
 import io.netty.channel.socket.nio.NioServerSocketChannel
+import io.netty.channel.uring.{IoUring, IoUringIoHandler, IoUringServerSocketChannel}
 import io.netty.handler.codec.http2.Http2SecurityUtil
 import io.netty.handler.ssl.ApplicationProtocolConfig.{Protocol, SelectedListenerFailureBehavior, SelectorFailureBehavior}
 import io.netty.handler.ssl.util.SelfSignedCertificate
 import io.netty.handler.ssl.{ApplicationProtocolConfig, ApplicationProtocolNames, SslContextBuilder, SslProvider, SupportedCipherSuiteFilter}
-import io.netty.incubator.channel.uring.{IOUring, IOUringEventLoopGroup, IOUringServerSocketChannel}
 import io.netty.util._
 
 import scala.concurrent.duration.DurationInt
@@ -30,29 +30,29 @@ object Server extends StrictLogging {
     val wsPort = config.getInt("ws.ports.ws")
     val wssPort = config.getInt("ws.ports.wss")
     val useEpoll = config.getBoolean("transport.epoll") && Epoll.isAvailable
-    val useIoUring = config.getBoolean("transport.iouring") && IOUring.isAvailable
+    val useIoUring = config.getBoolean("transport.iouring") && IoUring.isAvailable
 
     if (useEpoll) {
       Epoll.ensureAvailability()
     } else if (useIoUring) {
-      IOUring.ensureAvailability()
+      IoUring.ensureAvailability()
     }
 
     ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.DISABLED)
 
     val channelClass: Class[_ <: ServerSocketChannel] =
       if (useEpoll) classOf[EpollServerSocketChannel]
-      else if (useIoUring) classOf[IOUringServerSocketChannel]
+      else if (useIoUring) classOf[IoUringServerSocketChannel]
       else classOf[NioServerSocketChannel]
-    val bossGroup =
-      if (useEpoll) new EpollEventLoopGroup(1)
-      else if (useIoUring) new IOUringEventLoopGroup(1)
-      else new NioEventLoopGroup(1)
-    val availableProcessors = Runtime.getRuntime.availableProcessors
-    val workerGroup =
-      if (useEpoll) new EpollEventLoopGroup(availableProcessors)
-      else if (useIoUring) new IOUringEventLoopGroup(availableProcessors)
-      else new NioEventLoopGroup
+
+    val ioHandlerFactory =
+      if (useEpoll) EpollIoHandler.newFactory
+      else if (useIoUring) IoUringIoHandler.newFactory
+      else NioIoHandler.newFactory
+
+    val bossGroup = new MultiThreadIoEventLoopGroup(1, ioHandlerFactory)
+    val workerGroup = new MultiThreadIoEventLoopGroup(Runtime.getRuntime.availableProcessors, ioHandlerFactory)
+
     val transportName =
       if (useEpoll) "epoll"
       else if (useIoUring) "iouring"
