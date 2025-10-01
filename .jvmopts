@@ -1,3 +1,8 @@
 -Xmx1G
---add-opens=java.base/java.lang.invoke=ALL-UNNAMED
---add-opens=java.base/java.util=ALL-UNNAMED
+-XX:+UseZGC
+--add-opens=java.base/java.nio=ALL-UNNAMED
+--add-opens=java.base/jdk.internal.misc=ALL-UNNAMED
+--enable-native-access=ALL-UNNAMED
+--sun-misc-unsafe-memory-access=allow
+-Dio.netty.allocator.type=pooled
+-Dio.netty.tryReflectionSetAccessible=true
