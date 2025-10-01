@@ -4,8 +4,8 @@ scalacOptions := Seq(
   "-encoding", "UTF-8", "-target:jvm-1.8", "-deprecation",
   "-feature", "-unchecked", "-language:implicitConversions", "-language:postfixOps")
 
-val nettyVersion = "4.2.1.Final"
-val nettyTcNativeVersion = "2.0.71.Final"
+val nettyVersion = "4.2.6.Final"
+val nettyTcNativeVersion = "2.0.74.Final"
 
 libraryDependencies += "io.netty"                    % "netty-codec-http"                % nettyVersion
 libraryDependencies += "io.netty"                    % "netty-codec-http2"               % nettyVersion
@@ -17,9 +17,9 @@ libraryDependencies += "io.netty"                    % "netty-transport-native-i
 libraryDependencies += "io.netty"                    % "netty-transport-native-io_uring" % nettyVersion classifier "linux-x86_64"
 libraryDependencies += "io.netty"                    % "netty-tcnative-classes"          % nettyTcNativeVersion
 libraryDependencies += "io.netty"                    % "netty-tcnative-boringssl-static" % nettyTcNativeVersion
-libraryDependencies += "org.bouncycastle"            % "bcpkix-jdk18on"                  % "1.80"
+libraryDependencies += "org.bouncycastle"            % "bcpkix-jdk18on"                  % "1.82"
 libraryDependencies += "org.slf4j"                   % "slf4j-api"                       % "2.0.17"
-libraryDependencies += "ch.qos.logback"              % "logback-classic"                 % "1.5.18"
-libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging"                   % "3.9.5"
-libraryDependencies += "com.typesafe"                % "config"                          % "1.4.3"
+libraryDependencies += "ch.qos.logback"              % "logback-classic"                 % "1.5.19"
+libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging"                   % "3.9.6"
+libraryDependencies += "com.typesafe"                % "config"                          % "1.4.5"
 libraryDependencies += "org.apache.commons"          % "commons-math3"                   % "3.6.1"
