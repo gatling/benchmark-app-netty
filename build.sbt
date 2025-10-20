@@ -4,7 +4,7 @@ scalacOptions := Seq(
   "-encoding", "UTF-8", "-target:jvm-1.8", "-deprecation",
   "-feature", "-unchecked", "-language:implicitConversions", "-language:postfixOps")
 
-val nettyVersion = "4.2.6.Final"
+val nettyVersion = "4.2.7.Final"
 val nettyTcNativeVersion = "2.0.74.Final"
 
 libraryDependencies += "io.netty"                    % "netty-codec-http"                % nettyVersion
