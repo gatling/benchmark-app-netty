@@ -2,10 +2,10 @@ import java.io.ByteArrayOutputStream
 import java.nio.charset.StandardCharsets.UTF_8
 import java.util.zip.GZIPOutputStream
 
-import io.netty.handler.codec.http.HttpHeaderValues.{APPLICATION_JSON, TEXT_PLAIN}
-import io.netty.util.AsciiString
+import scala.io.{ Codec, Source }
 
-import scala.io.{Codec, Source}
+import io.netty.handler.codec.http.HttpHeaderValues.{ APPLICATION_JSON, TEXT_PLAIN }
+import io.netty.util.AsciiString
 
 object Content {
   private val HtmlContentType = new AsciiString("text/html; charset=utf-8")

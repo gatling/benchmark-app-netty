@@ -3,21 +3,18 @@ import java.util.concurrent.ForkJoinPool
 
 import com.typesafe.scalalogging.StrictLogging
 import io.netty.bootstrap.ServerBootstrap
-import io.netty.buffer.Unpooled.{copiedBuffer, unreleasableBuffer}
-import io.netty.buffer.{ByteBuf, ByteBufUtil, Unpooled}
+import io.netty.buffer.{ ByteBuf, ByteBufUtil, Unpooled }
 import io.netty.channel._
 import io.netty.channel.socket.SocketChannel
-import io.netty.handler.codec.http.HttpServerUpgradeHandler.{UpgradeCodec, UpgradeCodecFactory}
 import io.netty.handler.codec.http._
+import io.netty.handler.codec.http.HttpServerUpgradeHandler.{ UpgradeCodec, UpgradeCodecFactory }
 import io.netty.handler.codec.http2._
-import io.netty.handler.ssl.{ApplicationProtocolNames, ApplicationProtocolNegotiationHandler, SslContext}
-import io.netty.util.{AsciiString, CharsetUtil, ReferenceCountUtil}
+import io.netty.handler.ssl.{ ApplicationProtocolNames, ApplicationProtocolNegotiationHandler, SslContext }
+import io.netty.util.{ AsciiString, CharsetUtil, ReferenceCountUtil }
 
 final class Http2(clearPort: Int, securedPort: Int, sslContext: SslContext) extends StrictLogging {
 
-  private final val ResponseBytes = unreleasableBuffer(
-    copiedBuffer("Hello World", CharsetUtil.UTF_8)
-  ).asReadOnly
+  private final val ResponseBytes = Unpooled.unreleasableBuffer(Unpooled.copiedBuffer("Hello World", CharsetUtil.UTF_8)).asReadOnly
 
   private class Http1Handler(establishApproach: String) extends SimpleChannelInboundHandler[FullHttpRequest] {
     override def channelRead0(ctx: ChannelHandlerContext, req: FullHttpRequest): Unit = {

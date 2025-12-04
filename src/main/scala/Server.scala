@@ -1,19 +1,19 @@
+import scala.concurrent.duration.DurationInt
+
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.StrictLogging
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel._
-import io.netty.channel.epoll.{Epoll, EpollIoHandler, EpollServerSocketChannel}
+import io.netty.channel.epoll.{ Epoll, EpollIoHandler, EpollServerSocketChannel }
 import io.netty.channel.nio.NioIoHandler
 import io.netty.channel.socket.ServerSocketChannel
 import io.netty.channel.socket.nio.NioServerSocketChannel
-import io.netty.channel.uring.{IoUring, IoUringIoHandler, IoUringServerSocketChannel}
+import io.netty.channel.uring.{ IoUring, IoUringIoHandler, IoUringServerSocketChannel }
 import io.netty.handler.codec.http2.Http2SecurityUtil
-import io.netty.handler.ssl.ApplicationProtocolConfig.{Protocol, SelectedListenerFailureBehavior, SelectorFailureBehavior}
+import io.netty.handler.ssl.{ ApplicationProtocolConfig, ApplicationProtocolNames, SslContextBuilder, SslProvider, SupportedCipherSuiteFilter }
+import io.netty.handler.ssl.ApplicationProtocolConfig.{ Protocol, SelectedListenerFailureBehavior, SelectorFailureBehavior }
 import io.netty.handler.ssl.util.SelfSignedCertificate
-import io.netty.handler.ssl.{ApplicationProtocolConfig, ApplicationProtocolNames, SslContextBuilder, SslProvider, SupportedCipherSuiteFilter}
 import io.netty.util._
-
-import scala.concurrent.duration.DurationInt
 
 object Server extends StrictLogging {
 
@@ -66,15 +66,19 @@ object Server extends StrictLogging {
         .protocols("TLSv1.3", "TLSv1.2", "TLSv1.1", "TLSv1")
         .build()
     val http2SslContext =
-      SslContextBuilder.forServer(cert.certificate, cert.privateKey)
+      SslContextBuilder
+        .forServer(cert.certificate, cert.privateKey)
         .sslProvider(SslProvider.OPENSSL)
         .ciphers(Http2SecurityUtil.CIPHERS, SupportedCipherSuiteFilter.INSTANCE)
-        .applicationProtocolConfig(new ApplicationProtocolConfig(
-          Protocol.ALPN,
-          SelectorFailureBehavior.NO_ADVERTISE,
-          SelectedListenerFailureBehavior.ACCEPT,
-          ApplicationProtocolNames.HTTP_2,
-          ApplicationProtocolNames.HTTP_1_1))
+        .applicationProtocolConfig(
+          new ApplicationProtocolConfig(
+            Protocol.ALPN,
+            SelectorFailureBehavior.NO_ADVERTISE,
+            SelectedListenerFailureBehavior.ACCEPT,
+            ApplicationProtocolNames.HTTP_2,
+            ApplicationProtocolNames.HTTP_1_1
+          )
+        )
         .build()
 
     val bootstrap = new ServerBootstrap()
@@ -84,41 +88,40 @@ object Server extends StrictLogging {
 
     val allWhenClose =
       new Http(httpPort, httpsPort, sslContext, idleTimeout).boot(bootstrap) ++
-      new Http2(http2ClearPort, http2SecuredPort, http2SslContext).boot(bootstrap) ++
-      new Ws(wsPort, wssPort, sslContext).boot(bootstrap)
+        new Http2(http2ClearPort, http2SecuredPort, http2SslContext).boot(bootstrap) ++
+        new Ws(wsPort, wssPort, sslContext).boot(bootstrap)
 
-    logger.info(
-      s"""Server started on ports using transport $transportName:
-         |* HTTP/1.1: $httpPort (unsecured), $httpsPort (TLS)
-         |* HTTP/2: $http2ClearPort (H2C), $http2SecuredPort (TLS)
-         |* WebSockets: $wsPort (WS) and $wssPort (WSS)
-         |
-         |HTTP/1.1:
-         |=========
-         |
-         |* /echo
-         |* /redirect/endpoint
-         |* /txt/hello.txt
-         |* /json/(100|250|500|1k|10k).json
-         |* /html/(46k|232k).html
-         |
-         |* "accept-encoding" header controls gzip
-         |* "X-Delay" header controls delay (Int millis)
-         |* "X-UseLogNormalDelay" header controls using log normal distribution for delay instead of constant value
-         |
-         |HTTP/2:
-         |=======
-         |
-         |* /echo
-         |
-         |WebSocket:
-         |==========
-         |
-         |* path = "/"
-         |* "echo" reply immediately with "echo"
-         |* "multiple?times=(.*)" replies multiple times with response1, response2...
-         |* "close?delay=(.*)" closes after some delay (Int millis)
-         |""".stripMargin)
+    logger.info(s"""Server started on ports using transport $transportName:
+                   |* HTTP/1.1: $httpPort (unsecured), $httpsPort (TLS)
+                   |* HTTP/2: $http2ClearPort (H2C), $http2SecuredPort (TLS)
+                   |* WebSockets: $wsPort (WS) and $wssPort (WSS)
+                   |
+                   |HTTP/1.1:
+                   |=========
+                   |
+                   |* /echo
+                   |* /redirect/endpoint
+                   |* /txt/hello.txt
+                   |* /json/(100|250|500|1k|10k).json
+                   |* /html/(46k|232k).html
+                   |
+                   |* "accept-encoding" header controls gzip
+                   |* "X-Delay" header controls delay (Int millis)
+                   |* "X-UseLogNormalDelay" header controls using log normal distribution for delay instead of constant value
+                   |
+                   |HTTP/2:
+                   |=======
+                   |
+                   |* /echo
+                   |
+                   |WebSocket:
+                   |==========
+                   |
+                   |* path = "/"
+                   |* "echo" reply immediately with "echo"
+                   |* "multiple?times=(.*)" replies multiple times with response1, response2...
+                   |* "close?delay=(.*)" closes after some delay (Int millis)
+                   |""".stripMargin)
 
     allWhenClose.foreach(_.channel.closeFuture.sync)
 

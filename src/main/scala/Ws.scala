@@ -24,76 +24,83 @@ final class Ws(clearPort: Int, securedPort: Int, sslContext: SslContext) extends
         .addLast(new HttpServerCodec())
         .addLast(new HttpObjectAggregator(65536))
         .addLast(new WebSocketServerProtocolHandler("/", null, true))
-        .addLast("handler", new ChannelInboundHandlerAdapter {
+        .addLast(
+          "handler",
+          new ChannelInboundHandlerAdapter {
 
-          override def exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable): Unit = cause match {
-            case ioe: IOException =>
-              val root = if (ioe.getCause != null) ioe.getCause else ioe
-              if (!(root.getMessage != null && root.getMessage.endsWith("Connection reset by peer"))) {
-                // ignore, this is just client aborting
-                logger.error("exceptionCaught", ioe)
-              }
-              ctx.channel.close()
-            case _ => ctx.fireExceptionCaught(cause)
-          }
+            override def exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable): Unit = cause match {
+              case ioe: IOException =>
+                val root = if (ioe.getCause != null) ioe.getCause else ioe
+                if (!(root.getMessage != null && root.getMessage.endsWith("Connection reset by peer"))) {
+                  // ignore, this is just client aborting
+                  logger.error("exceptionCaught", ioe)
+                }
+                ctx.channel.close()
+              case _ => ctx.fireExceptionCaught(cause)
+            }
 
-          override def channelRead(ctx: ChannelHandlerContext, msg: AnyRef): Unit =
-          try {
-            msg match {
-              case txtFrame: TextWebSocketFrame =>
-                val txt = txtFrame.text
-                logger.debug(s"Received TextWebSocketFrame=$txt")
+            override def channelRead(ctx: ChannelHandlerContext, msg: AnyRef): Unit =
+              try {
+                msg match {
+                  case txtFrame: TextWebSocketFrame =>
+                    val txt = txtFrame.text
+                    logger.debug(s"Received TextWebSocketFrame=$txt")
 
-                txt match {
-                  case "echo" =>
-                    logger.info("Replying echo")
-                    ctx.writeAndFlush(new TextWebSocketFrame("echo"))
+                    txt match {
+                      case "echo" =>
+                        logger.info("Replying echo")
+                        ctx.writeAndFlush(new TextWebSocketFrame("echo"))
 
-                  case multipleTimes(times) =>
-                    val timesInt = times.toInt
-                    for (i <- 0 until timesInt) {
-                      ctx.executor().schedule(
-                        new Runnable {
-                          override def run(): Unit = {
-                            val resp = s"response${i + 1}"
-                            logger.info(s"Replying $resp")
-                            ctx.writeAndFlush(new TextWebSocketFrame(resp))
-                          }
-                        },
-                        i,
-                        TimeUnit.SECONDS
-                      )
+                      case multipleTimes(times) =>
+                        val timesInt = times.toInt
+                        for (i <- 0 until timesInt) {
+                          ctx
+                            .executor()
+                            .schedule(
+                              new Runnable {
+                                override def run(): Unit = {
+                                  val resp = s"response${i + 1}"
+                                  logger.info(s"Replying $resp")
+                                  ctx.writeAndFlush(new TextWebSocketFrame(resp))
+                                }
+                              },
+                              i,
+                              TimeUnit.SECONDS
+                            )
+                        }
+
+                      case "close" =>
+                        logger.info("Closing WebSocket")
+                        ctx.close()
+
+                      case crashAfterDelay(delayString) =>
+                        val delay = delayString.toInt
+                        ctx.writeAndFlush(new TextWebSocketFrame("close"))
+                        ctx
+                          .executor()
+                          .schedule(
+                            new Runnable {
+                              override def run(): Unit = {
+                                logger.info("Closing WebSocket after delay")
+                                ctx.close()
+                              }
+                            },
+                            delay,
+                            TimeUnit.MILLISECONDS
+                          )
+
+                      case _ =>
+                        logger.error(s"Unknown text msg=$txt")
                     }
 
-                  case "close" =>
-                    logger.info("Closing WebSocket")
-                    ctx.close()
-
-                  case crashAfterDelay(delayString) =>
-                    val delay = delayString.toInt
-                    ctx.writeAndFlush(new TextWebSocketFrame("close"))
-                    ctx.executor().schedule(
-                      new Runnable {
-                        override def run(): Unit = {
-                          logger.info("Closing WebSocket after delay")
-                          ctx.close()
-                        }
-                      },
-                      delay,
-                      TimeUnit.MILLISECONDS
-                    )
-
                   case _ =>
-                    logger.error(s"Unknown text msg=$txt")
+                    logger.error(s"Read unexpected msg=$msg")
                 }
-
-              case _ =>
-                logger.error(s"Read unexpected msg=$msg")
-            }
-          } finally {
-            ReferenceCountUtil.release(msg)
+              } finally {
+                ReferenceCountUtil.release(msg)
+              }
           }
-        })
+        )
     }
 
   def boot(bootstrap: ServerBootstrap): Seq[ChannelFuture] =

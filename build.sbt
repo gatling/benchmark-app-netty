@@ -7,6 +7,8 @@ scalacOptions := Seq(
 val nettyVersion = "4.2.7.Final"
 val nettyTcNativeVersion = "2.0.74.Final"
 
+enablePlugins(GatlingAutomatedScalafixPlugin, GatlingAutomatedScalafmtPlugin)
+
 libraryDependencies += "io.netty"                    % "netty-codec-http"                % nettyVersion
 libraryDependencies += "io.netty"                    % "netty-codec-http2"               % nettyVersion
 libraryDependencies += "io.netty"                    % "netty-handler"                   % nettyVersion

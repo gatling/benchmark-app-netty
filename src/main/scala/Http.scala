@@ -1,20 +1,21 @@
 import java.io.IOException
 import java.net.InetSocketAddress
-import java.util.concurrent.{ForkJoinPool, TimeUnit}
+import java.util.concurrent.{ ForkJoinPool, TimeUnit }
+
+import scala.concurrent.duration.FiniteDuration
+import scala.jdk.CollectionConverters._
+
 import com.typesafe.scalalogging.StrictLogging
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.buffer.Unpooled
-import io.netty.channel.ChannelHandler.Sharable
 import io.netty.channel._
+import io.netty.channel.ChannelHandler.Sharable
 import io.netty.handler.codec.http._
-import io.netty.handler.codec.http.HttpHeaderNames.{ACCEPT_ENCODING, CONTENT_ENCODING, CONTENT_LENGTH, CONTENT_TYPE}
+import io.netty.handler.codec.http.HttpHeaderNames.{ ACCEPT_ENCODING, CONTENT_ENCODING, CONTENT_LENGTH, CONTENT_TYPE }
 import io.netty.handler.codec.http.HttpHeaderValues.GZIP
 import io.netty.handler.ssl.SslContext
-import io.netty.util.{AsciiString, ReferenceCountUtil}
+import io.netty.util.{ AsciiString, ReferenceCountUtil }
 import org.apache.commons.math3.distribution.LogNormalDistribution
-
-import scala.jdk.CollectionConverters._
-import scala.concurrent.duration.FiniteDuration
 
 @Sharable
 object AppHandler extends ChannelInboundHandlerAdapter with StrictLogging {
@@ -27,6 +28,11 @@ object AppHandler extends ChannelInboundHandlerAdapter with StrictLogging {
     response.headers.set(CONTENT_LENGTH, response.content.readableBytes)
     ctx.writeAndFlush(response)
     logger.debug(s"wrote response=$response")
+  }
+
+  override def channelInactive(ctx: ChannelHandlerContext): Unit = {
+    logger.debug("channelInactive")
+    super.channelInactive(ctx)
   }
 
   private def writeResponse(ctx: ChannelHandlerContext, request: HttpRequest, content: Content): Unit = {
@@ -48,12 +54,16 @@ object AppHandler extends ChannelInboundHandlerAdapter with StrictLogging {
     maybeDelay match {
       case Some(averageDelay) =>
         val delay = if (useLogNormalDelay) math.round(AppHandler.logNormalDistribution.sample * averageDelay) else averageDelay
-        ctx.executor.schedule(new Runnable {
-          override def run(): Unit =
-            if (ctx.channel.isActive) {
-              writeResponse(ctx, response)
-            }
-        }, delay, TimeUnit.MILLISECONDS)
+        ctx.executor.schedule(
+          new Runnable {
+            override def run(): Unit =
+              if (ctx.channel.isActive) {
+                writeResponse(ctx, response)
+              }
+          },
+          delay,
+          TimeUnit.MILLISECONDS
+        )
 
       case _ =>
         writeResponse(ctx, response)
@@ -108,14 +118,14 @@ object AppHandler extends ChannelInboundHandlerAdapter with StrictLogging {
           } else {
             request.uri match {
               case Content.HelloWorld.path => writeResponse(ctx, request, Content.HelloWorld)
-              case Content.Json100.path => writeResponse(ctx, request, Content.Json100)
-              case Content.Json250.path => writeResponse(ctx, request, Content.Json250)
-              case Content.Json500.path => writeResponse(ctx, request, Content.Json500)
-              case Content.Json1k.path => writeResponse(ctx, request, Content.Json1k)
-              case Content.Json10k.path => writeResponse(ctx, request, Content.Json10k)
-              case Content.Html46k.path => writeResponse(ctx, request, Content.Html46k)
-              case Content.Html232k.path => writeResponse(ctx, request, Content.Html232k)
-              case _ => writeResponse(ctx, new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_FOUND))
+              case Content.Json100.path    => writeResponse(ctx, request, Content.Json100)
+              case Content.Json250.path    => writeResponse(ctx, request, Content.Json250)
+              case Content.Json500.path    => writeResponse(ctx, request, Content.Json500)
+              case Content.Json1k.path     => writeResponse(ctx, request, Content.Json1k)
+              case Content.Json10k.path    => writeResponse(ctx, request, Content.Json10k)
+              case Content.Html46k.path    => writeResponse(ctx, request, Content.Html46k)
+              case Content.Html232k.path   => writeResponse(ctx, request, Content.Html232k)
+              case _                       => writeResponse(ctx, new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_FOUND))
             }
           }
 
