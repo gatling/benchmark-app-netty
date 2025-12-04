@@ -10,7 +10,6 @@ import io.netty.handler.codec.http._
 import io.netty.handler.codec.http.HttpHeaderNames.{ACCEPT_ENCODING, CONTENT_ENCODING, CONTENT_LENGTH, CONTENT_TYPE}
 import io.netty.handler.codec.http.HttpHeaderValues.GZIP
 import io.netty.handler.ssl.SslContext
-import io.netty.handler.timeout.{IdleState, IdleStateEvent}
 import io.netty.util.{AsciiString, ReferenceCountUtil}
 import org.apache.commons.math3.distribution.LogNormalDistribution
 
@@ -60,14 +59,6 @@ object AppHandler extends ChannelInboundHandlerAdapter with StrictLogging {
         writeResponse(ctx, response)
     }
   }
-
-  override def userEventTriggered(ctx: ChannelHandlerContext, evt: AnyRef): Unit =
-    evt match {
-      case e: IdleStateEvent if e.state == IdleState.READER_IDLE =>
-        logger.info("Idle => closing")
-        ctx.close()
-      case _ =>
-    }
 
   override def exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable): Unit = cause match {
     case ioe: IOException =>
