@@ -31,6 +31,7 @@ object Server extends StrictLogging {
     val wssPort = config.getInt("ws.ports.wss")
     val useEpoll = config.getBoolean("transport.epoll") && Epoll.isAvailable
     val useIoUring = config.getBoolean("transport.iouring") && IoUring.isAvailable
+    val useBoringSsl = config.getBoolean("tls.boringssl")
 
     if (useEpoll) {
       Epoll.ensureAvailability()
@@ -62,7 +63,7 @@ object Server extends StrictLogging {
     val sslContext =
       SslContextBuilder
         .forServer(cert.certificate, cert.privateKey)
-        .sslProvider(SslProvider.OPENSSL)
+        .sslProvider(if (useBoringSsl) SslProvider.OPENSSL else SslProvider.JDK)
         .protocols("TLSv1.3", "TLSv1.2", "TLSv1.1", "TLSv1")
         .build()
     val http2SslContext =
