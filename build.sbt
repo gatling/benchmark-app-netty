@@ -1,4 +1,4 @@
-scalaVersion := "2.13.18"
+scalaVersion := "3.8.1"
 
 scalacOptions := Seq(
   "-encoding", "UTF-8", "-target:jvm-1.8", "-deprecation",
