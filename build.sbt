@@ -5,7 +5,7 @@ scalacOptions := Seq(
   "-feature", "-unchecked", "-language:implicitConversions", "-language:postfixOps")
 
 val nettyVersion = "4.2.10.Final"
-val nettyTcNativeVersion = "2.0.74.Final"
+val nettyTcNativeVersion = "2.0.75.Final"
 
 enablePlugins(GatlingAutomatedScalafixPlugin, GatlingAutomatedScalafmtPlugin)
 
