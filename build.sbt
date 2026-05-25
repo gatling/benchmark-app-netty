@@ -4,7 +4,7 @@ scalacOptions := Seq(
   "-encoding", "UTF-8", "-target:jvm-1.8", "-deprecation",
   "-feature", "-unchecked", "-language:implicitConversions", "-language:postfixOps")
 
-val nettyVersion = "4.2.13.Final"
+val nettyVersion = "4.2.14.Final"
 val nettyTcNativeVersion = "2.0.77.Final"
 
 enablePlugins(GatlingAutomatedScalafixPlugin, GatlingAutomatedScalafmtPlugin)
