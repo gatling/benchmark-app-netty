@@ -27,7 +27,7 @@ lazy val benchmarkAppNetty = rootProject
       "io.netty"                    % "netty-tcnative-classes"          % nettyTcNativeVersion,
       "io.netty"                    % "netty-tcnative-boringssl-static" % nettyTcNativeVersion,
       "org.bouncycastle"            % "bcpkix-jdk18on"                  % "1.85",
-      "org.slf4j"                   % "slf4j-api"                       % "2.0.18",
+      "org.slf4j"                   % "slf4j-api"                       % "2.0.19",
       "ch.qos.logback"              % "logback-classic"                 % "1.6.3",
       "com.typesafe.scala-logging" %% "scala-logging"                   % "3.9.6",
       "com.typesafe"                % "config"                          % "1.4.9",
