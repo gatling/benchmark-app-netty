@@ -1,5 +1,5 @@
 val nettyVersion = "4.2.18.Final"
-val nettyTcNativeVersion = "2.0.83.Final"
+val nettyTcNativeVersion = "2.0.84.Final"
 
 lazy val benchmarkAppNetty = rootProject
   .enablePlugins(GatlingAutomatedScalafixPlugin, GatlingAutomatedScalafmtPlugin)
