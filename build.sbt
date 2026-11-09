@@ -30,7 +30,7 @@ lazy val benchmarkAppNetty = rootProject
       "org.slf4j"                   % "slf4j-api"                       % "2.0.20",
       "ch.qos.logback"              % "logback-classic"                 % "1.6.6",
       "com.typesafe.scala-logging" %% "scala-logging"                   % "3.9.6",
-      "com.typesafe"                % "config"                          % "1.4.9",
+      "com.typesafe"                % "config"                          % "1.4.10",
       "org.apache.commons"          % "commons-math3"                   % "3.6.1"
     )
   )
