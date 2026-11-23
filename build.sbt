@@ -1,4 +1,4 @@
-val nettyVersion = "4.2.20.Final"
+val nettyVersion = "4.2.21.Final"
 val nettyTcNativeVersion = "2.0.85.Final"
 
 lazy val benchmarkAppNetty = rootProject
